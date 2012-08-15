@@ -1431,7 +1431,7 @@ static void ptrace_stop(int exit_code, int why, int clear_code, siginfo_t *info)
 		read_unlock(&tasklist_lock);
 	}
 
-	try_to_freeze();
+	try_to_freeze_nowarn();
 
 	spin_lock_irq(&current->sighand->siglock);
 	current->last_siginfo = NULL;
