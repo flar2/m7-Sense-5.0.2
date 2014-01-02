@@ -549,3 +549,5 @@ obj-$(CONFIG_IOEXTENDER) += ADP5585_ioextender.o
 obj-y += htc_cpu_usage_stats.o
 
 obj-$(CONFIG_MSM_IPC_ROUTER_SECURITY)+= msm_ipc_router_security.o
+
+obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
