@@ -104,6 +104,8 @@ ifneq ($(CONFIG_DHD_USE_SCHED_SCAN),)
 DHDCFLAGS += -DWL_SCHED_SCAN
 endif
 
+DHDCFLAGS += -DCUSTOM_PNO_EVENT_LOCK_xTIME=10
+
 ifdef COMPAT_WIRELESS
 NOSTDINC_FLAGS := -I$(COMPAT_WIRELESS)/include/ \
         -include $(COMPAT_WIRELESS)/include/linux/compat-2.6.h
