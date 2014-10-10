@@ -3039,5 +3039,11 @@ config UPDATE_LCDC_LUT
 	help
 	  enable LCDC LUT
 
+config LCD_KCAL
+        tristate "MSM generic LCDC Calibration"
+        default y
+        help
+          Enable MSM generic LCDC temperature Calibration.
+
 endif
 
