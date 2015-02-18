@@ -228,6 +228,7 @@ static int l2m_switch = 1;
 static int l2w_switch = 0;
 static int dt2w_switch = 1;
 static int pocket_detect = 1;
+static int knockcode = 0;
 static int s2w_hist[2] = {0, 0};
 static unsigned long s2w_time[3] = {0, 0, 0};
 static unsigned long l2m_time[2] = {0, 0};
@@ -2102,10 +2103,6 @@ static ssize_t synaptics_pocket_detect_dump(struct device *dev, struct device_at
 static DEVICE_ATTR(pocket_detect, 0666,
 	synaptics_pocket_detect_show, synaptics_pocket_detect_dump);
 
-
-
-
-
 static ssize_t synaptics_vib_strength_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	size_t count = 0;
@@ -2124,6 +2121,26 @@ static ssize_t synaptics_vib_strength_dump(struct device *dev, struct device_att
 
 static DEVICE_ATTR(vib_strength, 0666,
 	synaptics_vib_strength_show, synaptics_vib_strength_dump);
+
+static ssize_t synaptics_knockcode_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+	count += sprintf(buf, "%d\n", knockcode);
+	return count;
+}
+
+static ssize_t synaptics_knockcode_dump(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	if (buf[0] >= '0' && buf[0] <= '1' && buf[1] == '\n')
+                if (knockcode != buf[0] - '0')
+		        knockcode = buf[0] - '0';
+
+	return count;
+}
+
+static DEVICE_ATTR(knockcode, 0666,
+	synaptics_knockcode_show, synaptics_knockcode_dump);
+
 #endif
 
 enum SR_REG_STATE{
@@ -2306,6 +2323,12 @@ static int synaptics_touch_sysfs_init(void)
 		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
 		return ret;
 	}
+
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_knockcode.attr);
+	if (ret) {
+		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		return ret;
+	}
 #endif
 
 #ifdef SYN_WIRELESS_DEBUG
@@ -2363,6 +2386,7 @@ static void synaptics_touch_sysfs_remove(void)
 	sysfs_remove_file(android_touch_kobj, &dev_attr_logo2wake.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_pocket_detect.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_vib_strength.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_knockcode.attr);
 #endif
 #ifdef SYN_WIRELESS_DEBUG
 	sysfs_remove_file(android_touch_kobj, &dev_attr_enabled.attr);
@@ -3058,7 +3082,7 @@ static void synaptics_ts_finger_func(struct synaptics_ts_data *ts)
 							   last_touch_position_y = finger_data[i][1];
 
 							   if (!report_htc_logo_area(last_touch_position_x,last_touch_position_y)) {
-								if (scr_suspended && phone_call_stat == 1) {
+								if (scr_suspended && phone_call_stat == 1 && !knockcode) {
 									finger_data[i][0] = -10;
 									finger_data[i][1] = -10; 
 								}
