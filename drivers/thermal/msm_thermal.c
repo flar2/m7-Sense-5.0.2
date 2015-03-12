@@ -104,7 +104,7 @@ static int update_cpu_max_freq(int cpu, int throttled_bin, unsigned temp)
 
 	if (max_frequency != MSM_CPUFREQ_NO_LIMIT)
 		pr_info("msm_thermal: limiting cpu%d max frequency to %d at %u degC\n",
-				cpu, max_frequency, temp);		cpu, max_freq);
+				cpu, max_frequency, temp);
 	else
 		pr_info("msm_thermal: Max frequency reset for cpu%d at %u degC\n", cpu, temp);
 
@@ -202,12 +202,12 @@ int __init msm_thermal_init(struct msm_thermal_data *pdata)
 	BUG_ON(pdata->sensor_id >= TSENS_MAX_SENSORS);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
 
-+//	check_max_freq();
+//	check_max_freq();
 
 	INIT_DELAYED_WORK(&first_work, check_temp);
 	INIT_WORK(&trip_work, check_temp);
 
 	schedule_delayed_work(&first_work, msecs_to_jiffies(5*1000)); 
 
-	return 0
+	return 0;
 }
