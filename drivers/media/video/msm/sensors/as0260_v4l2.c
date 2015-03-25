@@ -13,39 +13,43 @@
 #define USE_MCLK_780MHZ 1
 
 DEFINE_MUTEX(as0260_mut);
-DEFINE_MUTEX(as0260_sensor_init_mut); 
+DEFINE_MUTEX(as0260_sensor_init_mut); //CC120826,
 static struct msm_sensor_ctrl_t as0260_s_ctrl;
 int g_csi_if = 0;
 static int op_mode;
 
 static struct msm_camera_i2c_reg_conf as0260_start_settings[] = {
 
-    {0x3C40, 0x7834},   
+    {0x3C40, 0x7834},   // MIPI_CONTROL
 };
 
 static struct msm_camera_i2c_reg_conf as0260_start_settings_yushanii[] = {
 
-    {0x3C40, 0x7834},   
+    {0x3C40, 0x7834},   // MIPI_CONTROL
 };
 
 static struct msm_camera_i2c_reg_conf as0260_stop_settings[] = {
 
-    {0x3C40, 0x7836},   
+    {0x3C40, 0x7836},   // MIPI_CONTROL
 };
 
 static struct msm_camera_i2c_reg_conf as0260_stop_settings_yushanii[] = {
 
-    {0x3C40, 0x7836},   
+    {0x3C40, 0x7836},   // MIPI_CONTROL
 };
 
 static struct msm_camera_i2c_reg_conf as0260_groupon_settings[] = {
+//	{0x3022, 0x00100,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_WRITE},//As AR0260
 };
 
 static struct msm_camera_i2c_reg_conf as0260_groupoff_settings[] = {
+//	{0x3022, 0x0000,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_WRITE},//As AR0260
 };
 
 static struct msm_camera_i2c_reg_conf as0260_prev_settings[] = {
+//Hank for AS0260
 
+// AS0260 END
 };
 
 static struct msm_camera_i2c_reg_conf as0260_snap_settings[] = {
@@ -326,728 +330,736 @@ uint8_t as0260_burst_0xe978[] ={
 };
 
 #if 1
+//AS0260 HTC
+//********************************************************************************************************/
+// MCLK=24MHz, single lane MIPI, 1928x1088, 19.8fps
+// Rev. 2a: 20130716
+// 1. Modify special effect settings to fix non-frame sync issue while change mode.
+// 2. The settings for image orientation is ready for use.
+//
+//********************************************************************************************************/
 
- 
- 
- 
- 
- 
+ //POLL_{ 0x0018, 0x4000, ==0, DELAY=10, TIMEOUT=100; pg while (0x18==0) ;
+ //POLL_{ 0x001C, 0xFF00, !=6, DELAY=10, TIMEOUT=100
+ //POLL_{ 0x001C, 0xFF00, <0x3C, DELAY=10, TIMEOUT=100
+ //POLL_{ 0x4334, 0xFFFF, !=0, DELAY=1, TIMEOUT=100
+ //POLL_{ 0x0014, 0x8000, ==0, DELAY=10, TIMEOUT=100
 
  struct msm_camera_i2c_reg_conf as0260_recommend_settings_brust_all[] = {
 
-    {0x001A, 0x0005},   
-    {0x001C, 0x000C},   
-    {0x001A, 0x0014},   
-    
+    {0x001A, 0x0005},   // RESET_AND_MISC_CONTROL
+    {0x001C, 0x000C},   // MCU_BOOT_MODE
+    {0x001A, 0x0014},   // RESET_AND_MISC_CONTROL
+    //DELAY=100
     {0xffff, 100},
-    
+    //POLL_REG= 0x001C, 0xFF00, !=6, DELAY=1, TIMEOUT= 100        // polling register R0x001C[15:8] till it become to 6
     {0x001C, 6<<8,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0xFF00},
 
 
-    {0x0982, 0x0001},   
-    {0x098A, 0x6A44},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6A44},   // PHYSICAL_ADDRESS_ACCESS
 
     {0xEA44, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xea44,sizeof(as0260_burst_0xea44)},
 
-    {0x098E, 0x4954},   
-    {0x098A, 0x5F38},   
-    {0x0990, 0xFFFF},   
-    {0x0992, 0xEAC0},   
-    {0x001C, 0x0600},   
-    
-    
-    
+    {0x098E, 0x4954},   // LOGICAL_ADDRESS_ACCESS
+    {0x098A, 0x5F38},   // PHYSICAL_ADDRESS_ACCESS
+    {0x0990, 0xFFFF},   // MCU_VARIABLE_DATA0
+    {0x0992, 0xEAC0},   // MCU_VARIABLE_DATA1
+    {0x001C, 0x0600},   // MCU_BOOT_MODE
+    //DELAY=100
+    //{0xffff, 100},
+    //POLL_REG= 0x001C, 0xff00, <0x2F, DELAY=1, TIMEOUT=100       // polling register R0x001C[15:8] till it > or = 0x2F
     {0x001C, 0x2F<<8,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_LESS,0xFF00},
 
 
-    {0x098E, 0xCA12},   
+    {0x098E, 0xCA12},   // LOGICAL_ADDRESS_ACCESS
     {0xCA12,0x01,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE},
-    {0x001A, 0x0014},   
+    {0x001A, 0x0014},   // RESET_AND_MISC_CONTROL
 {0xCA14,0x0450},
-    {0xCA16, 0x0070},   
-    {0xCA18, 0x7F7D},   
-    {0xCA1A, 0x1005},   
-    {0xC808, 0x0345},   
-    {0xC80A, 0x0DB6},   
+    {0xCA16, 0x0070},   // CAM_SYSCTL_PLL_DIVIDER_P
+    {0xCA18, 0x7F7D},   // CAM_SYSCTL_PLL_DIVIDER_P4_P5_P6
+    {0xCA1A, 0x1005},   // CAM_SYSCTL_PLL_DIVIDER_P7
+    {0xC808, 0x0345},   // CAM_SENSOR_CFG_PIXCLK
+    {0xC80A, 0x0DB6},   // CAM_SENSOR_CFG_PIXCLK
 
-    {0x0020, 0x0018},   
-    {0x3C4E, 0x0B00},   
-    {0x3C50, 0x0B06},   
-    {0x3C50, 0x0906},   
-    {0x3C52, 0x0D02},   
-    {0x3C52, 0x0C02},   
-    {0x3C54, 0x0719},   
-    {0x3C54, 0x0719},   
-    {0x3C56, 0x0005},   
-    {0x3C58, 0x0A0C},   
-    
-    
-    
-    {0x3C40, 0x7834},   
-    {0xC800, 0x0018},       
-    {0xC802, 0x0018},       
-    {0xC804, 0x045F},       
-    {0xC806, 0x07A7},       
-    {0xC80E, 0x0336},   
-    {0xC810, 0x10A5},   
-    {0xC812, 0x0499},   
-    {0xC814, 0x1263},   
-    {0xC816, 0x00D4},   
-    {0xC818, 0x0443},   
-    {0xC830, 0x0002},   
-    {0xC858, 0x0000},   
-    {0xC85A, 0x0000},   
-    {0xC85C, 0x0788},   
-    {0xC85E, 0x0440},   
-    {0xC86C, 0x0788},   
-    {0xC86E, 0x0440},   
-    {0xC88E, 0x13CD},   
-    
-    {0xC890, 0x0800},   
-    
-    {0xC892, 0x01FC}, 	
-    
-    {0xC94B, 0x88,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE}, 	
-    {0xC94C, 0x0000},   
-    {0xC94E, 0x0000},   
-    {0xC950, 0x0787},   
-    {0xC952, 0x043F},   
-    {0xC954, 0x0140},   
-    {0xC956, 0x005A},   
-    {0xC958, 0x0240},   
-    {0xC95A, 0x010E},   
-    {0x3C40, 0x7836},   
-    {0x4346, 0xFFFF},   
-    {0xC870, 0x4011},   
+    {0x0020, 0x0018},   // QUIET_COUNT_VALUE
+    {0x3C4E, 0x0B00},   // MIPI_TIMING_T_HS_ZERO
+    {0x3C50, 0x0B06},   // MIPI_TIMING_T_HS_EXIT_HS_TRAIL
+    {0x3C50, 0x0906},   // MIPI_TIMING_T_HS_EXIT_HS_TRAIL
+    {0x3C52, 0x0D02},   // MIPI_TIMING_T_CLK_POST_CLK_PRE
+    {0x3C52, 0x0C02},   // MIPI_TIMING_T_CLK_POST_CLK_PRE
+    {0x3C54, 0x0719},   // MIPI_TIMING_T_CLK_TRAIL_CLK_ZERO
+    {0x3C54, 0x0719},   // MIPI_TIMING_T_CLK_TRAIL_CLK_ZERO
+    {0x3C56, 0x0005},   // MIPI_TIMING_T_LPX
+    {0x3C58, 0x0A0C},   // MIPI_INIT_TIMING
+    /* remove this line of setting, 20130730c */
+    //{0x3C58, 0x0A0C},   // MIPI_INIT_TIMING
+    /* modify MIPI IP activation timing, 20130812a */
+    {0x3C40, 0x7834},   // MIPI_CONTROL
+    {0xC800, 0x0018},       // CAM_SENSOR_CFG_Y_ADDR_START
+    {0xC802, 0x0018},       // CAM_SENSOR_CFG_X_ADDR_START
+    {0xC804, 0x045F},       // CAM_SENSOR_CFG_Y_ADDR_END
+    {0xC806, 0x07A7},       // CAM_SENSOR_CFG_X_ADDR_END
+    {0xC80E, 0x0336},   // CAM_SENSOR_CFG_FINE_INTEG_TIME_MIN
+    {0xC810, 0x10A5},   // CAM_SENSOR_CFG_FINE_INTEG_TIME_MAX
+    {0xC812, 0x0499},   // CAM_SENSOR_CFG_FRAME_LENGTH_LINES
+    {0xC814, 0x1263},   // CAM_SENSOR_CFG_LINE_LENGTH_PCK
+    {0xC816, 0x00D4},   // CAM_SENSOR_CFG_FINE_CORRECTION
+    {0xC818, 0x0443},   // CAM_SENSOR_CFG_CPIPE_LAST_ROW
+    {0xC830, 0x0002},   // CAM_SENSOR_CONTROL_READ_MODE
+    {0xC858, 0x0000},   // CAM_CROP_WINDOW_XOFFSET
+    {0xC85A, 0x0000},   // CAM_CROP_WINDOW_YOFFSET
+    {0xC85C, 0x0788},   // CAM_CROP_WINDOW_WIDTH
+    {0xC85E, 0x0440},   // CAM_CROP_WINDOW_HEIGHT
+    {0xC86C, 0x0788},   // CAM_OUTPUT_WIDTH
+    {0xC86E, 0x0440},   // CAM_OUTPUT_HEIGHT
+    {0xC88E, 0x13CD},   // CAM_AET_MAX_FRAME_RATE
+    /* 20130812a, 10fps of minimum frame rate */
+    {0xC890, 0x0800},   // CAM_AET_MIN_FRAME_RATE (change min FPS from A00 to 800 to get better color performance)
+    /* 20130822, change target gain to 15.875x */
+    {0xC892, 0x01FC}, 	// CAM_AET_TARGET_GAIN
+    /* 20130822, Modify CAM_STAT_LUMA_THRESH_HIGH */
+    {0xC94B, 0x88,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE}, 	// CAM_STAT_LUMA_THRESH_HIGH
+    {0xC94C, 0x0000},   // CAM_STAT_AWB_CLIP_WINDOW_XSTART
+    {0xC94E, 0x0000},   // CAM_STAT_AWB_CLIP_WINDOW_YSTART
+    {0xC950, 0x0787},   // CAM_STAT_AWB_CLIP_WINDOW_XEND
+    {0xC952, 0x043F},   // CAM_STAT_AWB_CLIP_WINDOW_YEND
+    {0xC954, 0x0140},   // CAM_STAT_AE_INITIAL_WINDOW_XSTART
+    {0xC956, 0x005A},   // CAM_STAT_AE_INITIAL_WINDOW_YSTART
+    {0xC958, 0x0240},   // CAM_STAT_AE_INITIAL_WINDOW_XEND
+    {0xC95A, 0x010E},   // CAM_STAT_AE_INITIAL_WINDOW_YEND
+    {0x3C40, 0x7836},   // MIPI_CONTROL
+    {0x4346, 0xFFFF},   // JPEG_JPOP_LIMIT
+    {0xC870, 0x4011},   // CAM_OUTPUT_FORMAT
 
-    
-    {0xC830, 0x0001},   
-    {0xC830, 0x0002},   
-    {0x3E00, 0x042D},   
-    {0x3E02, 0x39FF},   
-    {0x3E04, 0x49FF},   
-    {0x3E06, 0xFFFF},   
-    {0x3E08, 0x8071},   
-    {0x3E0A, 0x7211},   
-    {0x3E0C, 0xE040},   
-    {0x3E0E, 0xA840},   
-    {0x3E10, 0x4100},   
-    {0x3E12, 0x1846},   
-    {0x3E14, 0xA547},   
-    {0x3E16, 0xAD57},   
-    {0x3E18, 0x8149},   
-    {0x3E1A, 0x9D49},   
-    {0x3E1C, 0x9F46},   
-    {0x3E1E, 0x8000},   
-    {0x3E20, 0x1842},   
-    {0x3E22, 0x4180},   
-    {0x3E24, 0x0018},   
-    {0x3E26, 0x8149},   
-    {0x3E28, 0x9C49},   
-    {0x3E2A, 0x9347},   
-    {0x3E2C, 0x804D},   
-    {0x3E2E, 0x804A},   
-    {0x3E30, 0x100C},   
-    {0x3E32, 0x8000},   
-    {0x3E34, 0x1841},   
-    {0x3E36, 0x4280},   
-    {0x3E38, 0x0018},   
-    {0x3E3A, 0x9710},   
-    {0x3E3C, 0x0C80},   
-    {0x3E3E, 0x4DA2},   
-    {0x3E40, 0x4BA0},   
-    {0x3E42, 0x4A00},   
-    {0x3E44, 0x1880},   
-    {0x3E46, 0x4241},   
-    {0x3E48, 0x0018},   
-    {0x3E4A, 0xB54B},   
-    {0x3E4C, 0x1C00},   
-    {0x3E4E, 0x8000},   
-    {0x3E50, 0x1C10},   
-    {0x3E52, 0x6081},   
-    {0x3E54, 0x1580},   
-    {0x3E56, 0x7C09},   
-    {0x3E58, 0x7000},   
-    {0x3E5A, 0x8082},   
-    {0x3E5C, 0x7281},   
-    {0x3E5E, 0x4C40},   
-    {0x3E60, 0x8E4D},   
-    {0x3E62, 0x8110},   
-    {0x3E64, 0x0CAF},   
-    {0x3E66, 0x4D80},   
-    {0x3E68, 0x100C},   
-    {0x3E6A, 0x8440},   
-    {0x3E6C, 0x4C81},   
-    {0x3E6E, 0x7C5B},   
-    {0x3E70, 0x7000},   
-    {0x3E72, 0x8054},   
-    {0x3E74, 0x924C},   
-    {0x3E76, 0x4078},   
-    {0x3E78, 0x4D4F},   
-    {0x3E7A, 0x4E98},   
-    {0x3E7C, 0x504E},   
-    {0x3E7E, 0x4F97},   
-    {0x3E80, 0x4F4E},   
-    {0x3E82, 0x507C},   
-    {0x3E84, 0x7B8D},   
-    {0x3E86, 0x4D88},   
-    {0x3E88, 0x4E10},   
-    {0x3E8A, 0x0940},   
-    {0x3E8C, 0x8879},   
-    {0x3E8E, 0x5481},   
-    {0x3E90, 0x7000},   
-    {0x3E92, 0x8082},   
-    {0x3E94, 0x7281},   
-    {0x3E96, 0x4C40},   
-    {0x3E98, 0x8E4D},   
-    {0x3E9A, 0x8110},   
-    {0x3E9C, 0x0CAF},   
-    {0x3E9E, 0x4D80},   
-    {0x3EA0, 0x100C},   
-    {0x3EA2, 0x8440},   
-    {0x3EA4, 0x4C81},   
-    {0x3EA6, 0x7C93},   
-    {0x3EA8, 0x7000},   
-    {0x3EAA, 0x0000},   
-    {0x3EAC, 0x0000},   
-    {0x3EAE, 0x0000},   
-    {0x3EB0, 0x0000},   
-    {0x3EB2, 0x0000},   
-    {0x3EB4, 0x0000},   
-    {0x3EB6, 0x0000},   
-    {0x3EB8, 0x0000},   
-    {0x3EBA, 0x0000},   
-    {0x3EBC, 0x0000},   
-    {0x3EBE, 0x0000},   
-    {0x3EC0, 0x0000},   
-    {0x3EC2, 0x0000},   
-    {0x3EC4, 0x0000},   
-    {0x3EC6, 0x0000},   
-    {0x3EC8, 0x0000},   
-    {0x3ECA, 0x0000},   
-    {0x30B2, 0xC000},   
-    {0x30D4, 0x9400},   
-    {0x31C0, 0x0000},   
-    {0x316A, 0x8200},   
-    {0x316C, 0x8200},   
-    {0x3EFE, 0x2808},   
-    {0x3EFC, 0x2868},   
-    {0x3ED2, 0xD165},   
-    {0x3EF2, 0xD165},   
-    {0x3ED8, 0x7F1A},   
-    {0x3EDA, 0x2828},   
-    {0x3EE2, 0x0058},   
-    {0x3EFE, 0x280A},   
-    {0x3170, 0x000A},   
-    {0x3174, 0x8060},   
-    {0x317A, 0x000A},   
-    {0x3ECC, 0x22B0},   
-    {0x30BC, 0x0384},   
-    
-    {0x098E, 0x0000},   
-    {0xC9F2, 0x0010},   
-    
-    {0xC9F4, 0x0A8C},   
-    {0xC9F6, 0x8000},   
-    {0xC9F8, 0x8000},   
-    {0xC9FA, 0x8000},   
-    {0xC9FC, 0x8000},   
-    
-    {0xC9FE, 0x12F2},   
-    {0xCA00, 0x8000},   
-    {0xCA02, 0x8000},   
-    {0xCA04, 0x8000},   
-    {0xCA06, 0x8000},   
-    {0xCA08, 0x1964},   
-    {0xCA0A, 0x8000},   
-    {0xCA0C, 0x8000},   
-    {0xCA0E, 0x8000},   
-    {0xCA10, 0x8000},   
-    
+    //{0x098E, 0x4830},   // LOGICAL_ADDRESS_ACCESS
+    {0xC830, 0x0001},   // CAM_SENSOR_CONTROL_READ_MODE
+    {0xC830, 0x0002},   // CAM_SENSOR_CONTROL_READ_MODE
+    {0x3E00, 0x042D},   // DYNAMIC_SEQRAM_00
+    {0x3E02, 0x39FF},   // DYNAMIC_SEQRAM_02
+    {0x3E04, 0x49FF},   // DYNAMIC_SEQRAM_04
+    {0x3E06, 0xFFFF},   // DYNAMIC_SEQRAM_06
+    {0x3E08, 0x8071},   // DYNAMIC_SEQRAM_08
+    {0x3E0A, 0x7211},   // DYNAMIC_SEQRAM_0A
+    {0x3E0C, 0xE040},   // DYNAMIC_SEQRAM_0C
+    {0x3E0E, 0xA840},   // DYNAMIC_SEQRAM_0E
+    {0x3E10, 0x4100},   // DYNAMIC_SEQRAM_10
+    {0x3E12, 0x1846},   // DYNAMIC_SEQRAM_12
+    {0x3E14, 0xA547},   // DYNAMIC_SEQRAM_14
+    {0x3E16, 0xAD57},   // DYNAMIC_SEQRAM_16
+    {0x3E18, 0x8149},   // DYNAMIC_SEQRAM_18
+    {0x3E1A, 0x9D49},   // DYNAMIC_SEQRAM_1A
+    {0x3E1C, 0x9F46},   // DYNAMIC_SEQRAM_1C
+    {0x3E1E, 0x8000},   // DYNAMIC_SEQRAM_1E
+    {0x3E20, 0x1842},   // DYNAMIC_SEQRAM_20
+    {0x3E22, 0x4180},   // DYNAMIC_SEQRAM_22
+    {0x3E24, 0x0018},   // DYNAMIC_SEQRAM_24
+    {0x3E26, 0x8149},   // DYNAMIC_SEQRAM_26
+    {0x3E28, 0x9C49},   // DYNAMIC_SEQRAM_28
+    {0x3E2A, 0x9347},   // DYNAMIC_SEQRAM_2A
+    {0x3E2C, 0x804D},   // DYNAMIC_SEQRAM_2C
+    {0x3E2E, 0x804A},   // DYNAMIC_SEQRAM_2E
+    {0x3E30, 0x100C},   // DYNAMIC_SEQRAM_30
+    {0x3E32, 0x8000},   // DYNAMIC_SEQRAM_32
+    {0x3E34, 0x1841},   // DYNAMIC_SEQRAM_34
+    {0x3E36, 0x4280},   // DYNAMIC_SEQRAM_36
+    {0x3E38, 0x0018},   // DYNAMIC_SEQRAM_38
+    {0x3E3A, 0x9710},   // DYNAMIC_SEQRAM_3A
+    {0x3E3C, 0x0C80},   // DYNAMIC_SEQRAM_3C
+    {0x3E3E, 0x4DA2},   // DYNAMIC_SEQRAM_3E
+    {0x3E40, 0x4BA0},   // DYNAMIC_SEQRAM_40
+    {0x3E42, 0x4A00},   // DYNAMIC_SEQRAM_42
+    {0x3E44, 0x1880},   // DYNAMIC_SEQRAM_44
+    {0x3E46, 0x4241},   // DYNAMIC_SEQRAM_46
+    {0x3E48, 0x0018},   // DYNAMIC_SEQRAM_48
+    {0x3E4A, 0xB54B},   // DYNAMIC_SEQRAM_4A
+    {0x3E4C, 0x1C00},   // DYNAMIC_SEQRAM_4C
+    {0x3E4E, 0x8000},   // DYNAMIC_SEQRAM_4E
+    {0x3E50, 0x1C10},   // DYNAMIC_SEQRAM_50
+    {0x3E52, 0x6081},   // DYNAMIC_SEQRAM_52
+    {0x3E54, 0x1580},   // DYNAMIC_SEQRAM_54
+    {0x3E56, 0x7C09},   // DYNAMIC_SEQRAM_56
+    {0x3E58, 0x7000},   // DYNAMIC_SEQRAM_58
+    {0x3E5A, 0x8082},   // DYNAMIC_SEQRAM_5A
+    {0x3E5C, 0x7281},   // DYNAMIC_SEQRAM_5C
+    {0x3E5E, 0x4C40},   // DYNAMIC_SEQRAM_5E
+    {0x3E60, 0x8E4D},   // DYNAMIC_SEQRAM_60
+    {0x3E62, 0x8110},   // DYNAMIC_SEQRAM_62
+    {0x3E64, 0x0CAF},   // DYNAMIC_SEQRAM_64
+    {0x3E66, 0x4D80},   // DYNAMIC_SEQRAM_66
+    {0x3E68, 0x100C},   // DYNAMIC_SEQRAM_68
+    {0x3E6A, 0x8440},   // DYNAMIC_SEQRAM_6A
+    {0x3E6C, 0x4C81},   // DYNAMIC_SEQRAM_6C
+    {0x3E6E, 0x7C5B},   // DYNAMIC_SEQRAM_6E
+    {0x3E70, 0x7000},   // DYNAMIC_SEQRAM_70
+    {0x3E72, 0x8054},   // DYNAMIC_SEQRAM_72
+    {0x3E74, 0x924C},   // DYNAMIC_SEQRAM_74
+    {0x3E76, 0x4078},   // DYNAMIC_SEQRAM_76
+    {0x3E78, 0x4D4F},   // DYNAMIC_SEQRAM_78
+    {0x3E7A, 0x4E98},   // DYNAMIC_SEQRAM_7A
+    {0x3E7C, 0x504E},   // DYNAMIC_SEQRAM_7C
+    {0x3E7E, 0x4F97},   // DYNAMIC_SEQRAM_7E
+    {0x3E80, 0x4F4E},   // DYNAMIC_SEQRAM_80
+    {0x3E82, 0x507C},   // DYNAMIC_SEQRAM_82
+    {0x3E84, 0x7B8D},   // DYNAMIC_SEQRAM_84
+    {0x3E86, 0x4D88},   // DYNAMIC_SEQRAM_86
+    {0x3E88, 0x4E10},   // DYNAMIC_SEQRAM_88
+    {0x3E8A, 0x0940},   // DYNAMIC_SEQRAM_8A
+    {0x3E8C, 0x8879},   // DYNAMIC_SEQRAM_8C
+    {0x3E8E, 0x5481},   // DYNAMIC_SEQRAM_8E
+    {0x3E90, 0x7000},   // DYNAMIC_SEQRAM_90
+    {0x3E92, 0x8082},   // DYNAMIC_SEQRAM_92
+    {0x3E94, 0x7281},   // DYNAMIC_SEQRAM_94
+    {0x3E96, 0x4C40},   // DYNAMIC_SEQRAM_96
+    {0x3E98, 0x8E4D},   // DYNAMIC_SEQRAM_98
+    {0x3E9A, 0x8110},   // DYNAMIC_SEQRAM_9A
+    {0x3E9C, 0x0CAF},   // DYNAMIC_SEQRAM_9C
+    {0x3E9E, 0x4D80},   // DYNAMIC_SEQRAM_9E
+    {0x3EA0, 0x100C},   // DYNAMIC_SEQRAM_A0
+    {0x3EA2, 0x8440},   // DYNAMIC_SEQRAM_A2
+    {0x3EA4, 0x4C81},   // DYNAMIC_SEQRAM_A4
+    {0x3EA6, 0x7C93},   // DYNAMIC_SEQRAM_A6
+    {0x3EA8, 0x7000},   // DYNAMIC_SEQRAM_A8
+    {0x3EAA, 0x0000},   // DYNAMIC_SEQRAM_AA
+    {0x3EAC, 0x0000},   // DYNAMIC_SEQRAM_AC
+    {0x3EAE, 0x0000},   // DYNAMIC_SEQRAM_AE
+    {0x3EB0, 0x0000},   // DYNAMIC_SEQRAM_B0
+    {0x3EB2, 0x0000},   // DYNAMIC_SEQRAM_B2
+    {0x3EB4, 0x0000},   // DYNAMIC_SEQRAM_B4
+    {0x3EB6, 0x0000},   // DYNAMIC_SEQRAM_B6
+    {0x3EB8, 0x0000},   // DYNAMIC_SEQRAM_B8
+    {0x3EBA, 0x0000},   // DYNAMIC_SEQRAM_BA
+    {0x3EBC, 0x0000},   // DYNAMIC_SEQRAM_BC
+    {0x3EBE, 0x0000},   // DYNAMIC_SEQRAM_BE
+    {0x3EC0, 0x0000},   // DYNAMIC_SEQRAM_C0
+    {0x3EC2, 0x0000},   // DYNAMIC_SEQRAM_C2
+    {0x3EC4, 0x0000},   // DYNAMIC_SEQRAM_C4
+    {0x3EC6, 0x0000},   // DYNAMIC_SEQRAM_C6
+    {0x3EC8, 0x0000},   // DYNAMIC_SEQRAM_C8
+    {0x3ECA, 0x0000},   // DYNAMIC_SEQRAM_CA
+    {0x30B2, 0xC000},   // CALIB_TIED_OFFSET
+    {0x30D4, 0x9400},   // COLUMN_CORRECTION
+    {0x31C0, 0x0000},   // FUSE_REF_ADDR
+    {0x316A, 0x8200},   // DAC_FBIAS
+    {0x316C, 0x8200},   // DAC_TXLO
+    {0x3EFE, 0x2808},   // DAC_LD_TXLO
+    {0x3EFC, 0x2868},   // DAC_LD_FBIAS
+    {0x3ED2, 0xD165},   // DAC_LD_6_7
+    {0x3EF2, 0xD165},   // DAC_LP_6_7
+    {0x3ED8, 0x7F1A},   // DAC_LD_12_13
+    {0x3EDA, 0x2828},   // DAC_LD_14_15
+    {0x3EE2, 0x0058},   // DAC_LD_22_23
+    {0x3EFE, 0x280A},   // DAC_LD_TXLO
+    {0x3170, 0x000A},   // ANALOG_CONTROL
+    {0x3174, 0x8060},   // ANALOG_CONTROL3
+    {0x317A, 0x000A},   // ANALOG_CONTROL6
+    {0x3ECC, 0x22B0},   // DAC_LD_0_1
+    {0x30BC, 0x0384},   // CALIB_GLOBAL
+    /* update the LSC which was calibrated by golden module, 20130711 */
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xC9F2, 0x0010},   // CAM_PGA_PGA_CONTROL
+    /* 20130828, Rev4c, update PGA table to fix reddish at A light */
+    {0xC9F4, 0x0A8C},   // CAM_PGA_L_CONFIG_COLOUR_TEMP
+    {0xC9F6, 0x8000},   // CAM_PGA_L_CONFIG_GREEN_RED_Q14
+    {0xC9F8, 0x8000},   // CAM_PGA_L_CONFIG_RED_Q14
+    {0xC9FA, 0x8000},   // CAM_PGA_L_CONFIG_GREEN_BLUE_Q14
+    {0xC9FC, 0x8000},   // CAM_PGA_L_CONFIG_BLUE_Q14
+    /* 20130828, Rev4c, update PGA table to fix reddish at A light */
+    {0xC9FE, 0x12F2},   // CAM_PGA_M_CONFIG_COLOUR_TEMP
+    {0xCA00, 0x8000},   // CAM_PGA_M_CONFIG_GREEN_RED_Q14
+    {0xCA02, 0x8000},   // CAM_PGA_M_CONFIG_RED_Q14
+    {0xCA04, 0x8000},   // CAM_PGA_M_CONFIG_GREEN_BLUE_Q14
+    {0xCA06, 0x8000},   // CAM_PGA_M_CONFIG_BLUE_Q14
+    {0xCA08, 0x1964},   // CAM_PGA_R_CONFIG_COLOUR_TEMP
+    {0xCA0A, 0x8000},   // CAM_PGA_R_CONFIG_GREEN_RED_Q14
+    {0xCA0C, 0x8000},   // CAM_PGA_R_CONFIG_RED_Q14
+    {0xCA0E, 0x8000},   // CAM_PGA_R_CONFIG_GREEN_BLUE_Q14
+    {0xCA10, 0x8000},   // CAM_PGA_R_CONFIG_BLUE_Q14
+    /* 90% of LSC falloff, 20130711 */
 
     {0xD1BC, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xd1bc,sizeof(as0260_burst_0xd1bc)},
     {0xD0F0, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xd0f0,sizeof(as0260_burst_0xd0f0)},
     {0xD024, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xd024,sizeof(as0260_burst_0xd024)},
-    
-    
-    {0xD018, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01E, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01D, 0x4B,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01C, 0xAA,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD021, 0x50,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD020, 0xAF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01F, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01B, 0x03,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9F2, 0x0011},   
-    {0x098E, 0x0000},   
-    
-    {0xC894, 0x0167},   
-    {0xC896, 0xFFAF},   
-    {0xC898, 0xFFFE},   
-    {0xC89A, 0xFFE3},   
-    {0xC89C, 0x0125},   
-    {0xC89E, 0xFFD6},   
-    {0xC8A0, 0xFFF0},   
-    {0xC8A2, 0xFFA3},   
-    {0xC8A4, 0x0154},   
-    {0xC8CA, 0x0056},   
-    {0xC8CC, 0x01A8},   
-    
-    {0xC8A6, 0x0142},   
-    {0xC8A8, 0xFF9B},   
-    {0xC8AA, 0x002E},   
-    {0xC8AC, 0xFFF2},   
-    {0xC8AE, 0x00D4},   
-    {0xC8B0, 0x0006},   
-    {0xC8B2, 0xFFF1},   
-    {0xC8B4, 0xFF77},   
-    {0xC8B6, 0x019D},   
-    {0xC8CE, 0x0087},   
-    {0xC8D0, 0x0157},   
-    
-    
-    {0xC8B8, 0x0191},   
-    {0xC8BA, 0xFF62},   
-    {0xC8BC, 0x001A},   
-    {0xC8BE, 0xFFFB},   
-    {0xC8C0, 0x00D7},   
-    {0xC8C2, 0xFFEE},   
-    {0xC8C4, 0xFFF7},   
-    {0xC8C6, 0xFF91},   
-    {0xC8C8, 0x01C0},   
-    {0xC8D2, 0x00BF},   
-    {0xC8D4, 0x00CD},   
-    {0xC8D6, 0x09C4},   
-    {0xC8D8, 0x0D67},   
-    {0xC8DA, 0x1964},   
-    {0xAC0A, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC0B, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC0C, 0x22,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC0D, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC16, 0x1C,MSM_CAMERA_I2C_BYTE_DATA},         
-    {0xAC17, 0x1C,MSM_CAMERA_I2C_BYTE_DATA},         
-    {0xC8EE, 0x09C4},   
-    {0xC8F0, 0x1964},   
-    {0xAC06, 0x63,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC07, 0x65,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC08, 0x63,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC09, 0x65,MSM_CAMERA_I2C_BYTE_DATA},     
-    
-    {0xC8F4, 0x0080},     
-    {0xC8F6, 0x00C4},     
-    {0xC95C, 0x0027},     
-    {0xC95E, 0x0013},     
+    //{0xC9F2, 0x0011},   // CAM_PGA_PGA_CONTROL
+    //{0xC9F2, 0x0011},   // CAM_PGA_PGA_CONTROL
+    {0xD018, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_CURRENT_ZONE
+    {0xD01E, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_LO_2
+    {0xD01D, 0x4B,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_LO_1
+    {0xD01C, 0xAA,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_LO_0
+    {0xD021, 0x50,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_HI_2
+    {0xD020, 0xAF,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_HI_1
+    {0xD01F, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_HI_0
+    {0xD01B, 0x03,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_NUMBER_ZONES
+    {0xC9F2, 0x0011},   // CAM_PGA_PGA_CONTROL
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    /* new CCM for Left, 20130730c*/
+    {0xC894, 0x0167},   // CAM_AWB_CCM_L_0
+    {0xC896, 0xFFAF},   // CAM_AWB_CCM_L_1
+    {0xC898, 0xFFFE},   // CAM_AWB_CCM_L_2
+    {0xC89A, 0xFFE3},   // CAM_AWB_CCM_L_3
+    {0xC89C, 0x0125},   // CAM_AWB_CCM_L_4
+    {0xC89E, 0xFFD6},   // CAM_AWB_CCM_L_5
+    {0xC8A0, 0xFFF0},   // CAM_AWB_CCM_L_6
+    {0xC8A2, 0xFFA3},   // CAM_AWB_CCM_L_7
+    {0xC8A4, 0x0154},   // CAM_AWB_CCM_L_8
+    {0xC8CA, 0x0056},   // CAM_AWB_CCM_L_RG_GAIN
+    {0xC8CC, 0x01A8},   // CAM_AWB_CCM_L_BG_GAIN
+    /* new CCM for Middle, 20130730c */
+    {0xC8A6, 0x0142},   // CAM_AWB_CCM_M_0
+    {0xC8A8, 0xFF9B},   // CAM_AWB_CCM_M_1
+    {0xC8AA, 0x002E},   // CAM_AWB_CCM_M_2
+    {0xC8AC, 0xFFF2},   // CAM_AWB_CCM_M_3
+    {0xC8AE, 0x00D4},   // CAM_AWB_CCM_M_4
+    {0xC8B0, 0x0006},   // CAM_AWB_CCM_M_5
+    {0xC8B2, 0xFFF1},   // CAM_AWB_CCM_M_6
+    {0xC8B4, 0xFF77},   // CAM_AWB_CCM_M_7
+    {0xC8B6, 0x019D},   // CAM_AWB_CCM_M_8
+    {0xC8CE, 0x0087},   // CAM_AWB_CCM_M_RG_GAIN
+    {0xC8D0, 0x0157},   // CAM_AWB_CCM_M_BG_GAIN
+    /* new CCM for Right, 20130730c */
+    // [AWB_HTC_20130807-3]
+    {0xC8B8, 0x0191},   // CAM_AWB_CCM_R_0
+    {0xC8BA, 0xFF62},   // CAM_AWB_CCM_R_1
+    {0xC8BC, 0x001A},   // CAM_AWB_CCM_R_2
+    {0xC8BE, 0xFFFB},   // CAM_AWB_CCM_R_3
+    {0xC8C0, 0x00D7},   // CAM_AWB_CCM_R_4
+    {0xC8C2, 0xFFEE},   // CAM_AWB_CCM_R_5
+    {0xC8C4, 0xFFF7},   // CAM_AWB_CCM_R_6
+    {0xC8C6, 0xFF91},   // CAM_AWB_CCM_R_7
+    {0xC8C8, 0x01C0},   // CAM_AWB_CCM_R_8
+    {0xC8D2, 0x00BF},   // CAM_AWB_CCM_R_RG_GAIN
+    {0xC8D4, 0x00CD},   // CAM_AWB_CCM_R_BG_GAIN
+    {0xC8D6, 0x09C4},   // CAM_AWB_CCM_L_CTEMP
+    {0xC8D8, 0x0D67},   // CAM_AWB_CCM_M_CTEMP
+    {0xC8DA, 0x1964},   // CAM_AWB_CCM_R_CTEMP
+    {0xAC0A, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_R_SCENE_RATIO_LOWER
+    {0xAC0B, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_R_SCENE_RATIO_UPPER
+    {0xAC0C, 0x22,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_B_SCENE_RATIO_LOWER
+    {0xAC0D, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_B_SCENE_RATIO_UPPER
+    {0xAC16, 0x1C,MSM_CAMERA_I2C_BYTE_DATA},         // AWB_PRE_AWB_RATIOS_TRACKING_SPEED -- default is set to 0x0A
+    {0xAC17, 0x1C,MSM_CAMERA_I2C_BYTE_DATA},         // AWB_STATISTICS_TRACKING_SPEED -- default is set to 0x0A
+    {0xC8EE, 0x09C4},   // CAM_AWB_COLOR_TEMPERATURE_MIN
+    {0xC8F0, 0x1964},   // CAM_AWB_COLOR_TEMPERATURE_MAX
+    {0xAC06, 0x63,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_R_RATIO_LOWER
+    {0xAC07, 0x65,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_R_RATIO_UPPER
+    {0xAC08, 0x63,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_B_RATIO_LOWER
+    {0xAC09, 0x65,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_B_RATIO_UPPER
+    /* new AWB XY setting, 20130812a */
+    {0xC8F4, 0x0080},     // CAM_AWB_AWB_XSCALE
+    {0xC8F6, 0x00C4},     // CAM_AWB_AWB_YSCALE
+    {0xC95C, 0x0027},     // CAM_STAT_AWB_X_SHIFT
+    {0xC95E, 0x0013},     // CAM_STAT_AWB_Y_SHIFT
 
 
-    {0xC8F8, 0x0000},   
-    {0xC8FA, 0x03D9},   
-    {0xC8FD, 0x2A,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC8FC, 0x30,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC900, 0x0000},   
-    {0xC902, 0x0000},   
-    {0xC904, 0x0000},   
-    {0xC906, 0x0000},   
-    {0xC908, 0x0000},   
-    {0xC90A, 0x0111},   
-    {0xC90C, 0x1110},   
-    {0xC90E, 0x0000},   
-    {0xC910, 0x0000},   
-    {0xC912, 0x1122},   
-    {0xC914, 0x2222},   
-    {0xC916, 0x1100},   
-    {0xC918, 0x0112},   
-    {0xC91A, 0x2333},   
-    {0xC91C, 0x3333},   
-    {0xC91E, 0x3211},   
-    {0xC920, 0x1234},   
-    {0xC922, 0x4554},   
-    {0xC924, 0x3334},   
-    {0xC926, 0x4321},   
-    {0xC928, 0x1345},   
-    {0xC92A, 0x5554},   
-    {0xC92C, 0x3223},   
-    {0xC92E, 0x3332},   
-    {0xC930, 0x1234},   
-    {0xC932, 0x4443},   
-    {0xC934, 0x2111},   
-    {0xC936, 0x2221},   
-    {0xC938, 0x0112},   
-    {0xC93A, 0x2221},   
-    {0xC93C, 0x1100},   
-    {0xC93E, 0x0010},   
-    {0x33F4, 0x0517},   
-    {0x098E, 0x481A},   
-    {0xC81A, 0x003D},   
-    {0xC81C, 0x01A0},   
-    
-    {0xC96C, 0x01,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC971, 0x2B,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96E, 0x02,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96D, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC973, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC972, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96F, 0x10,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC970, 0x18,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC974, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC975, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC976, 0x0E,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC977, 0x07,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC978, 0x0A,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC979, 0x32,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC97A, 0xE3,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC97C, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC97B, 0x9D,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC97D, 0x64,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0x33F4, 0x0515},   
-    {0xC9CE, 0x0040},   
-    {0xC9D0, 0x0800},   
-    {0xC9D2, 0x1000},   
-    {0xC984, 0x00E2},   
-    {0xC988, 0x00D1},   
-    {0xC98C, 0x00DE},   
-    {0xC990, 0x00D4},   
-    {0xC994, 0x0319},   
-    {0xC998, 0x01AD},   
-    {0xC986, 0x00A0},   
-    {0xC98A, 0x00B5},   
-    {0xC98E, 0x0127},   
-    {0xC992, 0x00DD},   
-    {0xC996, 0x027D},   
-    {0xC99A, 0x011B},   
-    {0xC97E, 0x000F},   
-    {0xC980, 0x0005},   
-    {0xC99C, 0x0009},   
-    {0xC99E, 0x000E},   
-    {0xC9A0, 0x000B},   
-    {0xC9A2, 0x0025},   
-    {0xC9A4, 0x0055},   
-    {0xC9A6, 0x00FF},   
-    {0x33F4, 0x0D15},   
-    
-    {0xC9A8, 0x0040},   
-    {0xC9AA, 0x0200},   
-    {0xC9AC, 0x0400},   
-    {0xC9AE, 0x07,MSM_CAMERA_I2C_BYTE_DATA},	
-    {0xC9AF, 0x0F,MSM_CAMERA_I2C_BYTE_DATA}, 	
-    {0xC9B0, 0x17,MSM_CAMERA_I2C_BYTE_DATA},    
-    {0xC9B2, 0x0076}, 	
-    {0xC9B4, 0x0064}, 	
-    {0xC9B6, 0x0061},   
-    {0xBC02, 0x001B},   
-    {0xC9BE, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0x3398, 0x0030},   
-    {0xC9B1, 0x01,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9B8, 0x021F},   
+    {0xC8F8, 0x0000},   // CAM_AWB_AWB_ROT_CENTER_X
+    {0xC8FA, 0x03D9},   // CAM_AWB_AWB_ROT_CENTER_Y
+    {0xC8FD, 0x2A,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_AWB_ROT_ANGLE_SIN
+    {0xC8FC, 0x30,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_AWB_ROT_ANGLE_COS
+    {0xC900, 0x0000},   // CAM_AWB_AWB_WEIGHTS_0
+    {0xC902, 0x0000},   // CAM_AWB_AWB_WEIGHTS_1
+    {0xC904, 0x0000},   // CAM_AWB_AWB_WEIGHTS_2
+    {0xC906, 0x0000},   // CAM_AWB_AWB_WEIGHTS_3
+    {0xC908, 0x0000},   // CAM_AWB_AWB_WEIGHTS_4
+    {0xC90A, 0x0111},   // CAM_AWB_AWB_WEIGHTS_5
+    {0xC90C, 0x1110},   // CAM_AWB_AWB_WEIGHTS_6
+    {0xC90E, 0x0000},   // CAM_AWB_AWB_WEIGHTS_7
+    {0xC910, 0x0000},   // CAM_AWB_AWB_WEIGHTS_8
+    {0xC912, 0x1122},   // CAM_AWB_AWB_WEIGHTS_9
+    {0xC914, 0x2222},   // CAM_AWB_AWB_WEIGHTS_10
+    {0xC916, 0x1100},   // CAM_AWB_AWB_WEIGHTS_11
+    {0xC918, 0x0112},   // CAM_AWB_AWB_WEIGHTS_12
+    {0xC91A, 0x2333},   // CAM_AWB_AWB_WEIGHTS_13
+    {0xC91C, 0x3333},   // CAM_AWB_AWB_WEIGHTS_14
+    {0xC91E, 0x3211},   // CAM_AWB_AWB_WEIGHTS_15
+    {0xC920, 0x1234},   // CAM_AWB_AWB_WEIGHTS_16
+    {0xC922, 0x4554},   // CAM_AWB_AWB_WEIGHTS_17
+    {0xC924, 0x3334},   // CAM_AWB_AWB_WEIGHTS_18
+    {0xC926, 0x4321},   // CAM_AWB_AWB_WEIGHTS_19
+    {0xC928, 0x1345},   // CAM_AWB_AWB_WEIGHTS_20
+    {0xC92A, 0x5554},   // CAM_AWB_AWB_WEIGHTS_21
+    {0xC92C, 0x3223},   // CAM_AWB_AWB_WEIGHTS_22
+    {0xC92E, 0x3332},   // CAM_AWB_AWB_WEIGHTS_23
+    {0xC930, 0x1234},   // CAM_AWB_AWB_WEIGHTS_24
+    {0xC932, 0x4443},   // CAM_AWB_AWB_WEIGHTS_25
+    {0xC934, 0x2111},   // CAM_AWB_AWB_WEIGHTS_26
+    {0xC936, 0x2221},   // CAM_AWB_AWB_WEIGHTS_27
+    {0xC938, 0x0112},   // CAM_AWB_AWB_WEIGHTS_28
+    {0xC93A, 0x2221},   // CAM_AWB_AWB_WEIGHTS_29
+    {0xC93C, 0x1100},   // CAM_AWB_AWB_WEIGHTS_30
+    {0xC93E, 0x0010},   // CAM_AWB_AWB_WEIGHTS_31
+    {0x33F4, 0x0517},   // KERNEL_CONFIG
+    {0x098E, 0x481A},   // LOGICAL_ADDRESS_ACCESS
+    {0xC81A, 0x003D},   // CAM_SENSOR_CFG_MIN_ANALOG_GAIN
+    {0xC81C, 0x01A0},   // CAM_SENSOR_CFG_MAX_ANALOG_GAIN
+    /* 20130822, new NR setting "NR-4" */
+    {0xC96C, 0x01,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_DEMOSAIC
+    {0xC971, 0x2B,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_DEMOSAIC
+    {0xC96E, 0x02,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_AP_NOISE_GAIN
+    {0xC96D, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_AP_NOISE_KNEE
+    {0xC973, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_AP_NOISE_GAIN
+    {0xC972, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_AP_NOISE_KNEE
+    {0xC96F, 0x10,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_AP_GAIN_POS
+    {0xC970, 0x18,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_AP_GAIN_NEG
+    {0xC974, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_AP_GAIN_POS
+    {0xC975, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_AP_GAIN_NEG
+    {0xC976, 0x0E,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_GRB_APOS
+    {0xC977, 0x07,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_GRB_BPOS
+    {0xC978, 0x0A,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_GRB_ANEG
+    {0xC979, 0x32,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_GRB_BNEG
+    {0xC97A, 0xE3,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_GRB_APOS
+    {0xC97C, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_GRB_ANEG
+    {0xC97B, 0x9D,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_GRB_BPOS
+    {0xC97D, 0x64,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_GRB_BNEG
+    {0x33F4, 0x0515},   // KERNEL_CONFIG
+    {0xC9CE, 0x0040},   // CAM_LL_START_MAX_GAIN_METRIC
+    {0xC9D0, 0x0800},   // CAM_LL_MID_MAX_GAIN_METRIC
+    {0xC9D2, 0x1000},   // CAM_LL_STOP_MAX_GAIN_METRIC
+    {0xC984, 0x00E2},   // CAM_LL_START_CDC_HI_THR_COMB
+    {0xC988, 0x00D1},   // CAM_LL_START_CDC_HI_THR_SATUR
+    {0xC98C, 0x00DE},   // CAM_LL_MID_CDC_HI_THR_COMB
+    {0xC990, 0x00D4},   // CAM_LL_MID_CDC_HI_THR_SATUR
+    {0xC994, 0x0319},   // CAM_LL_STOP_CDC_HI_THR_COMB
+    {0xC998, 0x01AD},   // CAM_LL_STOP_CDC_HI_THR_SATUR
+    {0xC986, 0x00A0},   // CAM_LL_START_CDC_LO_THR_COMB
+    {0xC98A, 0x00B5},   // CAM_LL_START_CDC_LO_THR_SATUR
+    {0xC98E, 0x0127},   // CAM_LL_MID_CDC_LO_THR_COMB
+    {0xC992, 0x00DD},   // CAM_LL_MID_CDC_LO_THR_SATUR
+    {0xC996, 0x027D},   // CAM_LL_STOP_CDC_LO_THR_COMB
+    {0xC99A, 0x011B},   // CAM_LL_STOP_CDC_LO_THR_SATUR
+    {0xC97E, 0x000F},   // CAM_LL_START_DC_SINGLE_PIXEL_THR
+    {0xC980, 0x0005},   // CAM_LL_STOP_DC_SINGLE_PIXEL_THR
+    {0xC99C, 0x0009},   // CAM_LL_START_CDC_CC_NOISE_SLOPE
+    {0xC99E, 0x000E},   // CAM_LL_START_CDC_CC_NOISE_KNEE
+    {0xC9A0, 0x000B},   // CAM_LL_MID_CDC_CC_NOISE_SLOPE
+    {0xC9A2, 0x0025},   // CAM_LL_MID_CDC_CC_NOISE_KNEE
+    {0xC9A4, 0x0055},   // CAM_LL_STOP_CDC_CC_NOISE_SLOPE
+    {0xC9A6, 0x00FF},   // CAM_LL_STOP_CDC_CC_NOISE_KNEE
+    {0x33F4, 0x0D15},   // KERNEL_CONFIG
+    /* 20130812a, modify NR settings [NR-3] */
+    {0xC9A8, 0x0040},   // CAM_LL_ADACD_LUT_GAIN_0
+    {0xC9AA, 0x0200},   // CAM_LL_ADACD_LUT_GAIN_1
+    {0xC9AC, 0x0400},   // CAM_LL_ADACD_LUT_GAIN_2
+    {0xC9AE, 0x07,MSM_CAMERA_I2C_BYTE_DATA},	// CAM_LL_ADACD_LUT_SIGMA_0
+    {0xC9AF, 0x0F,MSM_CAMERA_I2C_BYTE_DATA}, 	// CAM_LL_ADACD_LUT_SIGMA_1
+    {0xC9B0, 0x17,MSM_CAMERA_I2C_BYTE_DATA},    // CAM_LL_ADACD_LUT_SIGMA_2
+    {0xC9B2, 0x0076}, 	// CAM_LL_ADACD_LUT_K_0
+    {0xC9B4, 0x0064}, 	// CAM_LL_ADACD_LUT_K_1
+    {0xC9B6, 0x0061},   // CAM_LL_ADACD_LUT_K_2
+    {0xBC02, 0x001B},   // LL_MODE
+    {0xC9BE, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_LL_MODE_EN
+    {0x3398, 0x0030},   // ADACD_LOWLIGHT_CONTROL
+    {0xC9B1, 0x01,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_PATCH
+    {0xC9B8, 0x021F},   // CAM_LL_ADACD_TRT
 
-    {0x326E, 0x0086},   
-    {0x3270, 0x0FAA},   
-    {0x3272, 0x0FE4},   
-    {0xC9CA, 0x0040},   
-    {0xC9CC, 0x1000},   
-    {0xC9CE, 0x0040},   
-    {0xC9D2, 0x1000},   
-    {0x098E, 0xC944},   
+    {0x326E, 0x0086},   // LOW_PASS_YUV_FILTER
+    {0x3270, 0x0FAA},   // THRESHOLD_FOR_Y_FILTER_R_CHANNEL
+    {0x3272, 0x0FE4},   // THRESHOLD_FOR_Y_FILTER_G_CHANNEL
+    {0xC9CA, 0x0040},   // CAM_LL_START_GAIN_METRIC
+    {0xC9CC, 0x1000},   // CAM_LL_STOP_GAIN_METRIC
+    {0xC9CE, 0x0040},   // CAM_LL_START_MAX_GAIN_METRIC
+    {0xC9D2, 0x1000},   // CAM_LL_STOP_MAX_GAIN_METRIC
+    {0x098E, 0xC944},   // LOGICAL_ADDRESS_ACCESS
 
-    
-    {0xC942, 0x0B22},   
-    {0xC944, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC945, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC946, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC947, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC948, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC949, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC962, 0x0032},   
-    {0xC964, 0x0BB8},   
+    /* 20130828, Rev4c, modify CAM_AWB_TINTS_CTEMP_THRESHOLD, k_r_l and k_b_l for Horison */
+    {0xC942, 0x0B22},   // CAM_AWB_TINTS_CTEMP_THRESHOLD
+    {0xC944, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_R_L
+    {0xC945, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_G_L
+    {0xC946, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_B_L
+    {0xC947, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_R_R
+    {0xC948, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_G_R
+    {0xC949, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_B_R
+    {0xC962, 0x0032},   // CAM_LL_START_BRIGHTNESS
+    {0xC964, 0x0BB8},   // CAM_LL_STOP_BRIGHTNESS
 
-    
-    {0xC88A, 0x0080},   
-    {0xC87E, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC87F, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     
-    
-    {0xA808, 0x0019},   
-    
-    {0x32B2, 0x2518},   
-    {0xB402, 0x0002},   
-    {0xC968, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC969, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96A, 0x18,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96B, 0x0F,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xB42A, 0x05,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC8DC, 0x0100},   
-    {0xC8DE, 0x0000},   
-    {0xC8E0, 0x0000},   
-    {0xC8E2, 0x0000},   
-    {0xC8E4, 0x0100},   
-    {0xC8E6, 0x0000},   
-    {0xC8E8, 0x0000},   
-    {0xC8EA, 0x0000},   
-    {0xC8EC, 0x0100},   
-    {0x098E, 0x4A1C},   
-    {0xCA1C, 0x8040},   
-    {0x001E, 0x0777},   
-    {0xCA1C, 0x8041},   
-    {0xC888, 0x0080},   
-    
-    {0xC882, 0x000A},   
-    
-    
-    {0xC9EF, 0x31,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9F0, 0x52,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC966, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    
-    {0xDC00, 0x28,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0x0080, 0x8002},   
-    
-    
-    
+    /* 20130812a, use 1x of max. ae_virt_dgain */
+    {0xC88A, 0x0080},   // CAM_AET_AE_MAX_VIRT_DGAIN
+    {0xC87E, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     //0x3D  // CAM_AET_TARGET_AVERAGE_LUMA
+    {0xC87F, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     //0x3D  // CAM_AET_TARGET_AVERAGE_LUMA_DARK
+    /* add on 0703 for AE stability */
+    {0xA808, 0x0019},   // 25% 0x0032   // AE_TRACK_GATE -- set to 50% of stability
+    //
+    {0x32B2, 0x2518},   // DKDELTA_CCM_CTL
+    {0xB402, 0x0002},   // CCM_MODE
+    {0xC968, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_DESATURATION
+    {0xC969, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_END_DESATURATION
+    {0xC96A, 0x18,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_DARK_DELTA_CCM_THR
+    {0xC96B, 0x0F,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_DARK_DELTA_CCM_THR
+    {0xB42A, 0x05,MSM_CAMERA_I2C_BYTE_DATA},     // CCM_DELTA_GAIN
+    {0xC8DC, 0x0100},   // CAM_AWB_LL_CCM_0
+    {0xC8DE, 0x0000},   // CAM_AWB_LL_CCM_1
+    {0xC8E0, 0x0000},   // CAM_AWB_LL_CCM_2
+    {0xC8E2, 0x0000},   // CAM_AWB_LL_CCM_3
+    {0xC8E4, 0x0100},   // CAM_AWB_LL_CCM_4
+    {0xC8E6, 0x0000},   // CAM_AWB_LL_CCM_5
+    {0xC8E8, 0x0000},   // CAM_AWB_LL_CCM_6
+    {0xC8EA, 0x0000},   // CAM_AWB_LL_CCM_7
+    {0xC8EC, 0x0100},   // CAM_AWB_LL_CCM_8
+    {0x098E, 0x4A1C},   // LOGICAL_ADDRESS_ACCESS
+    {0xCA1C, 0x8040},   // CAM_PORT_OUTPUT_CONTROL
+    {0x001E, 0x0777},   // PAD_SLEW
+    {0xCA1C, 0x8041},   // CAM_PORT_OUTPUT_CONTROL
+    {0xC888, 0x0080},   // CAM_AET_AE_MIN_VIRT_DGAIN
+    //{0xC88A, 0x0180},   // CAM_AET_AE_MAX_VIRT_DGAIN
+    {0xC882, 0x000A},   // CAM_AET_BLACK_CLIPPING_TARGET
+    //{0xC81A, 0x0040},   // CAM_SENSOR_CFG_MIN_ANALOG_GAIN
+    //{0xC81C, 0x01F8},   // CAM_SENSOR_CFG_MAX_ANALOG_GAIN
+    {0xC9EF, 0x31,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_SEQ_DARK_COLOR_KILL
+    {0xC9F0, 0x52,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_SEQ_BRIGHT_COLOR_KILL
+    {0xC966, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_SATURATION
+    //{0x098E, 0xDC00},   // LOGICAL_ADDRESS_ACCESS
+    {0xDC00, 0x28,MSM_CAMERA_I2C_BYTE_DATA},     // SYSMGR_NEXT_STATE
+    {0x0080, 0x8002},   // COMMAND_REGISTER
+    //DELAY=50
+    //{0xffff, 50},
+    //POLL_REG= 0x0080, 0x0002, !=0, DELAY=1, TIMEOUT=100
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0002},
-    {0x301C, 0x0002},   
-    
+    {0x301C, 0x0002},   // Derrick 
+    //DELAY=10 ms
     {0xffff, 10},
 
 
-    {0x0982, 0x0001},   
-    {0x098A, 0x6000},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6000},   // PHYSICAL_ADDRESS_ACCESS
 
     {0xE000, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe000,sizeof(as0260_burst_0xe000)},
 
-    {0x098E, 0x0000},   
-    {0xE000, 0x0044},   
-    {0xE002, 0x0005},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
-    
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0044},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0005},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff, 10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
-    {0x0080, 0xFFF1},   
-    
-    
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff, 10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
-    {0x0982, 0x0001},   
-    {0x098A, 0x6068},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6068},   // PHYSICAL_ADDRESS_ACCESS
 
 
     {0xE068, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe068,sizeof(as0260_burst_0xe068)},
 
 
-    {0x098E, 0x0000},   
-    {0xE000, 0x0510},   
-    {0xE002, 0x0105},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
-    
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0510},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0105},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff, 10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
 
-    {0x0080, 0xFFF1},   
-    
-    
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff, 10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
-    
+    /* Face detection FW patch, can be removed if not used -- 20130724 */
     #if 0
-    {0x0982, 0x0001},   
-    {0x098A, 0x6568},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6568},   // PHYSICAL_ADDRESS_ACCESS
 
     {0xE568, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe568,sizeof(as0260_burst_0xe568)},
 
-    {0x098E, 0x0000},   
-    {0xE000, 0x05B8},   
-    {0xE002, 0x0205},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x05B8},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0205},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    
-    
-    {0x0080, 0xFFF1},   
-    
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
+    //{0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    
-    
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
+    //{0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
     #endif
-    {0x0982, 0x0001},   
-    {0x098A, 0x65DC},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x65DC},   // PHYSICAL_ADDRESS_ACCESS
 
 
     {0xE5DC, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe5dc,sizeof(as0260_burst_0xe5dc)},
 
-    {0x098E, 0x0000},   
-    {0xE000, 0x064C},   
-    {0xE002, 0x0305},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
-    
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x064C},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0305},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff, 10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
-    {0x0080, 0xFFF1},   
-    
-    
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff, 10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6670},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6670},   // PHYSICAL_ADDRESS_ACCESS
 
     {0xE670, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe670,sizeof(as0260_burst_0xe670)},
 
-    {0x098E, 0x0000},   
-    {0xE000, 0x0778},   
-    {0xE002, 0x0405},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
-    
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0778},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0405},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff, 10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
-    {0x0080, 0xFFF1},   
-    
-    
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff, 10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
-    {0x0982, 0x0001},   
-    {0x098A, 0x6854},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6854},   // PHYSICAL_ADDRESS_ACCESS
 
     {0xE854, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe854,sizeof(as0260_burst_0xe854)},
 
-    {0x098E, 0x0000},   
-    {0xE000, 0x08B4},   
-    {0xE002, 0x0605},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
-    
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x08B4},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0605},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff,10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
-    {0x0080, 0xFFF1},   
-    
-    
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff,10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
-    {0x0982, 0x0001},   
-    {0x098A, 0x68D8},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x68D8},   // PHYSICAL_ADDRESS_ACCESS
 
     {0xE8D8, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe8d8,sizeof(as0260_burst_0xe8d8)},
 
-    {0x098E, 0x0000},   
-    {0xE000, 0x0910},   
-    {0xE002, 0x0705},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
-    
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0910},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0705},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff,10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
-    {0x0080, 0xFFF1},   
-    
-    
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff,10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
 
-    {0x0982, 0x0001},   
-    {0x098A, 0x6934},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6934},   // PHYSICAL_ADDRESS_ACCESS
 
     {0xE934, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe934,sizeof(as0260_burst_0xe934)},
 
-    {0x098E, 0x0000},   
-    {0xE000, 0x094C},   
-    {0xE002, 0x0805},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
-    
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x094C},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0805},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff,10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
-    {0x0080, 0xFFF1},   
-    
-    
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff,10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6978},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6978},   // PHYSICAL_ADDRESS_ACCESS
 
     {0xE978, 0,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE_BURST,0,as0260_burst_0xe978,sizeof(as0260_burst_0xe978)},
-    {0x098E, 0x0000},   
-    {0xE000, 0x0A20},   
-    {0xE002, 0x0905},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
-    
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0A20},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0905},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff,10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
-    {0x0080, 0xFFF1},   
-    
-    
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
+    //{0xffff,10},
+    //POLL_REG= 0x0080, 0x0001, !=0, DELAY=1, TIMEOUT=100     // polling Register R0x0080[1] till it become to 1
     {0x0080, 0,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_POLL_NOT_EQUAL,0x0001},
-    {0xC960, 0x0003},   
-    {0xBC08, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C6, 0xC0,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C7, 0x60,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C8, 0x14,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C9, 0x28,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC967, 0x64,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xE400, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xE401, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C0, 0x0012},   
-    {0xC9C2, 0x0133},       
-    {0xBC02, 0x001B},   
+    {0xC960, 0x0003},   // CAM_LL_LLMODE
+    {0xBC08, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // LL_GAMMA_SELECT
+    {0xC9C6, 0xC0,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_CONTRAST_GRADIENT
+    {0xC9C7, 0x60,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_CONTRAST_GRADIENT
+    {0xC9C8, 0x14,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_CONTRAST_LUMA_PERCENTAGE
+    {0xC9C9, 0x28,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_CONTRAST_LUMA_PERCENTAGE (change lowlight contrast from 46 to 28 to decrease noise)
+    {0xC967, 0x64,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_END_SATURATION (change lowlight saturation from B4 to 64 to decrease noise)
+    {0xE400, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // PATCHVARS_START_ORIGIN_GRADIENT
+    {0xE401, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // PATCHVARS_STOP_ORIGIN_GRADIENT
+    {0xC9C0, 0x0012},   // CAM_LL_START_CONTRAST_BM
+    {0xC9C2, 0x0133},       //0x00B3    // CAM_LL_STOP_CONTRAST_BM -- for meet AE spec at LV6 9cd*m^2 -- 0703
+    {0xBC02, 0x001B},   // LL_MODE
 
-    
-    {0xC9D6, 0x0010}, 	
+    /* 20130828, Rev4c, change FTD setting here. The default value is 0x0060 */
+    {0xC9D6, 0x0010}, 	// CAM_LL_STOP_FADE_TO_BLACK_LUMA (change "fade to dark" trigger timing to avoid black screen)
 
-    {0x301C, 0x0102},   
+    {0x301C, 0x0102},   // Derrick  
 
-    
+    //{0x3C40, 0x7816},   // MIPI_CONTROL
 };
 
 
 #endif
 
  struct msm_camera_i2c_reg_conf as0260_recommend_settings[] = {
-    
-    
-    
-    
-    
-    
-    
-    
+    //V202 Setting generated based on SOC mode with 1928 x 1088
+    // Over 1920 x 1080, you may see the black or wrong color image in SOC mode
+    // V203 : Enabled highlight/dark color kill funcition.
+    // V204 : Adjust timing for 1928 x 1088 - Line at Bottom
+    // V205 : Adjust FOV read X,Y end + 8 - Start 8pixel earlier
+    // V206 : Just increased from V204 - Line on Top
+    // V207 : Revert to V205 to minimize the artifact
+    // V208 : Fixed half frame output issue
 
 
-    
-    
-    
+    //[Initialization YUV422, 1928x1088, 19.8fps, 24MHz MCLK, 768Mbps of single lane MIPI]
+    /* Set MCLK to 24MHz */
+    //XMCLK= 24000000
 
-    {0x001A, 0x0005},   
-    {0x001C, 0x000C},   
-    {0x001A, 0x0014},   
-    
+    {0x001A, 0x0005},   // RESET_AND_MISC_CONTROL
+    {0x001C, 0x000C},   // MCU_BOOT_MODE
+    {0x001A, 0x0014},   // RESET_AND_MISC_CONTROL
+    //DELAY=100
     {0xffff, 100},
 
-    {0x0982, 0x0001},   
-    {0x098A, 0x6A44},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6A44},   // PHYSICAL_ADDRESS_ACCESS
     {0xEA44, 0xC0F1},
     {0xEA46, 0x0A2E},
     {0xEA48, 0x0720},
@@ -1121,742 +1133,742 @@ uint8_t as0260_burst_0xe978[] ={
     {0xEAD0, 0xFFC1},
     {0xEAD2, 0xD800},
     {0xEAD4, 0xF1F4},
-    {0x098E, 0x0000},   
-    {0x098A, 0x5F38},   
-    {0x0990, 0xFFFF},   
-    {0x0992, 0xEAC0},   
-    {0x001C, 0x0600},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0x098A, 0x5F38},   // PHYSICAL_ADDRESS_ACCESS
+    {0x0990, 0xFFFF},   // MCU_VARIABLE_DATA0
+    {0x0992, 0xEAC0},   // MCU_VARIABLE_DATA1
+    {0x001C, 0x0600},   // MCU_BOOT_MODE
+    //DELAY=100
     {0xffff, 100},
-    {0x098E, 0xCA12},   
+    {0x098E, 0xCA12},   // LOGICAL_ADDRESS_ACCESS
     {0xCA12,0x01,MSM_CAMERA_I2C_BYTE_DATA,MSM_CAMERA_I2C_CMD_WRITE},
-    {0x001A, 0x0014},   
+    {0x001A, 0x0014},   // RESET_AND_MISC_CONTROL
 {0xCA14,0x0450},
-    {0xCA16, 0x0070},   
-    {0xCA18, 0x7F7D},   
-    {0xCA1A, 0x1005},   
-    {0xC808, 0x0345},   
-    {0xC80A, 0x0DB6},   
+    {0xCA16, 0x0070},   // CAM_SYSCTL_PLL_DIVIDER_P
+    {0xCA18, 0x7F7D},   // CAM_SYSCTL_PLL_DIVIDER_P4_P5_P6
+    {0xCA1A, 0x1005},   // CAM_SYSCTL_PLL_DIVIDER_P7
+    {0xC808, 0x0345},   // CAM_SENSOR_CFG_PIXCLK
+    {0xC80A, 0x0DB6},   // CAM_SENSOR_CFG_PIXCLK
 
-    {0x0020, 0x0018},   
-    {0x3C4E, 0x0B00},   
-    {0x3C50, 0x0B06},   
-    {0x3C50, 0x0906},   
-    {0x3C52, 0x0D02},   
-    {0x3C52, 0x0C02},   
-    {0x3C54, 0x0719},   
-    {0x3C54, 0x0719},   
-    {0x3C56, 0x0005},   
-    {0x3C58, 0x0A0C},   
-    {0x3C58, 0x0A0C},   
-    {0x3C40, 0x7816},   
-    {0xC800, 0x0018},       
-    {0xC802, 0x0018},       
-    {0xC804, 0x045F},       
-    {0xC806, 0x07A7},       
-    {0xC80E, 0x0336},   
-    {0xC810, 0x10A5},   
-    {0xC812, 0x0499},   
-    {0xC814, 0x1263},   
-    {0xC816, 0x00D4},   
-    {0xC818, 0x0443},   
-    {0xC830, 0x0002},   
-    {0xC858, 0x0000},   
-    {0xC85A, 0x0000},   
-    {0xC85C, 0x0788},   
-    {0xC85E, 0x0440},   
-    {0xC86C, 0x0788},   
-    {0xC86E, 0x0440},   
-    {0xC88E, 0x13CD},   
-    {0xC890, 0x13CC},   
-    {0xC94C, 0x0000},   
-    {0xC94E, 0x0000},   
-    {0xC950, 0x0787},   
-    {0xC952, 0x043F},   
-    {0xC954, 0x0000},   
-    {0xC956, 0x0000},   
-    {0xC958, 0x0180},   
-    {0xC95A, 0x00D8},   
-    {0x3C40, 0x7816},   
-    {0x4346, 0xFFFF},   
-    {0xC870, 0x4011},   
-    {0xC870, 0x4011},   
-    {0xC870, 0x4011},   
-    {0xC870, 0x4011},   
-    {0xC870, 0x4011},   
-    {0xC870, 0x4011},   
+    {0x0020, 0x0018},   // QUIET_COUNT_VALUE
+    {0x3C4E, 0x0B00},   // MIPI_TIMING_T_HS_ZERO
+    {0x3C50, 0x0B06},   // MIPI_TIMING_T_HS_EXIT_HS_TRAIL
+    {0x3C50, 0x0906},   // MIPI_TIMING_T_HS_EXIT_HS_TRAIL
+    {0x3C52, 0x0D02},   // MIPI_TIMING_T_CLK_POST_CLK_PRE
+    {0x3C52, 0x0C02},   // MIPI_TIMING_T_CLK_POST_CLK_PRE
+    {0x3C54, 0x0719},   // MIPI_TIMING_T_CLK_TRAIL_CLK_ZERO
+    {0x3C54, 0x0719},   // MIPI_TIMING_T_CLK_TRAIL_CLK_ZERO
+    {0x3C56, 0x0005},   // MIPI_TIMING_T_LPX
+    {0x3C58, 0x0A0C},   // MIPI_INIT_TIMING
+    {0x3C58, 0x0A0C},   // MIPI_INIT_TIMING
+    {0x3C40, 0x7816},   // MIPI_CONTROL
+    {0xC800, 0x0018},       // CAM_SENSOR_CFG_Y_ADDR_START
+    {0xC802, 0x0018},       // CAM_SENSOR_CFG_X_ADDR_START
+    {0xC804, 0x045F},       // CAM_SENSOR_CFG_Y_ADDR_END
+    {0xC806, 0x07A7},       // CAM_SENSOR_CFG_X_ADDR_END
+    {0xC80E, 0x0336},   // CAM_SENSOR_CFG_FINE_INTEG_TIME_MIN
+    {0xC810, 0x10A5},   // CAM_SENSOR_CFG_FINE_INTEG_TIME_MAX
+    {0xC812, 0x0499},   // CAM_SENSOR_CFG_FRAME_LENGTH_LINES
+    {0xC814, 0x1263},   // CAM_SENSOR_CFG_LINE_LENGTH_PCK
+    {0xC816, 0x00D4},   // CAM_SENSOR_CFG_FINE_CORRECTION
+    {0xC818, 0x0443},   // CAM_SENSOR_CFG_CPIPE_LAST_ROW
+    {0xC830, 0x0002},   // CAM_SENSOR_CONTROL_READ_MODE
+    {0xC858, 0x0000},   // CAM_CROP_WINDOW_XOFFSET
+    {0xC85A, 0x0000},   // CAM_CROP_WINDOW_YOFFSET
+    {0xC85C, 0x0788},   // CAM_CROP_WINDOW_WIDTH
+    {0xC85E, 0x0440},   // CAM_CROP_WINDOW_HEIGHT
+    {0xC86C, 0x0788},   // CAM_OUTPUT_WIDTH
+    {0xC86E, 0x0440},   // CAM_OUTPUT_HEIGHT
+    {0xC88E, 0x13CD},   // CAM_AET_MAX_FRAME_RATE
+    {0xC890, 0x13CC},   // CAM_AET_MIN_FRAME_RATE
+    {0xC94C, 0x0000},   // CAM_STAT_AWB_CLIP_WINDOW_XSTART
+    {0xC94E, 0x0000},   // CAM_STAT_AWB_CLIP_WINDOW_YSTART
+    {0xC950, 0x0787},   // CAM_STAT_AWB_CLIP_WINDOW_XEND
+    {0xC952, 0x043F},   // CAM_STAT_AWB_CLIP_WINDOW_YEND
+    {0xC954, 0x0000},   // CAM_STAT_AE_INITIAL_WINDOW_XSTART
+    {0xC956, 0x0000},   // CAM_STAT_AE_INITIAL_WINDOW_YSTART
+    {0xC958, 0x0180},   // CAM_STAT_AE_INITIAL_WINDOW_XEND
+    {0xC95A, 0x00D8},   // CAM_STAT_AE_INITIAL_WINDOW_YEND
+    {0x3C40, 0x7816},   // MIPI_CONTROL
+    {0x4346, 0xFFFF},   // JPEG_JPOP_LIMIT
+    {0xC870, 0x4011},   // CAM_OUTPUT_FORMAT
+    {0xC870, 0x4011},   // CAM_OUTPUT_FORMAT
+    {0xC870, 0x4011},   // CAM_OUTPUT_FORMAT
+    {0xC870, 0x4011},   // CAM_OUTPUT_FORMAT
+    {0xC870, 0x4011},   // CAM_OUTPUT_FORMAT
+    {0xC870, 0x4011},   // CAM_OUTPUT_FORMAT
 
-    {0x098E, 0x4830},   
-    {0xC830, 0x0001},   
-    {0xC830, 0x0002},   
-    {0x3E00, 0x042D},   
-    {0x3E02, 0x39FF},   
-    {0x3E04, 0x49FF},   
-    {0x3E06, 0xFFFF},   
-    {0x3E08, 0x8071},   
-    {0x3E0A, 0x7211},   
-    {0x3E0C, 0xE040},   
-    {0x3E0E, 0xA840},   
-    {0x3E10, 0x4100},   
-    {0x3E12, 0x1846},   
-    {0x3E14, 0xA547},   
-    {0x3E16, 0xAD57},   
-    {0x3E18, 0x8149},   
-    {0x3E1A, 0x9D49},   
-    {0x3E1C, 0x9F46},   
-    {0x3E1E, 0x8000},   
-    {0x3E20, 0x1842},   
-    {0x3E22, 0x4180},   
-    {0x3E24, 0x0018},   
-    {0x3E26, 0x8149},   
-    {0x3E28, 0x9C49},   
-    {0x3E2A, 0x9347},   
-    {0x3E2C, 0x804D},   
-    {0x3E2E, 0x804A},   
-    {0x3E30, 0x100C},   
-    {0x3E32, 0x8000},   
-    {0x3E34, 0x1841},   
-    {0x3E36, 0x4280},   
-    {0x3E38, 0x0018},   
-    {0x3E3A, 0x9710},   
-    {0x3E3C, 0x0C80},   
-    {0x3E3E, 0x4DA2},   
-    {0x3E40, 0x4BA0},   
-    {0x3E42, 0x4A00},   
-    {0x3E44, 0x1880},   
-    {0x3E46, 0x4241},   
-    {0x3E48, 0x0018},   
-    {0x3E4A, 0xB54B},   
-    {0x3E4C, 0x1C00},   
-    {0x3E4E, 0x8000},   
-    {0x3E50, 0x1C10},   
-    {0x3E52, 0x6081},   
-    {0x3E54, 0x1580},   
-    {0x3E56, 0x7C09},   
-    {0x3E58, 0x7000},   
-    {0x3E5A, 0x8082},   
-    {0x3E5C, 0x7281},   
-    {0x3E5E, 0x4C40},   
-    {0x3E60, 0x8E4D},   
-    {0x3E62, 0x8110},   
-    {0x3E64, 0x0CAF},   
-    {0x3E66, 0x4D80},   
-    {0x3E68, 0x100C},   
-    {0x3E6A, 0x8440},   
-    {0x3E6C, 0x4C81},   
-    {0x3E6E, 0x7C5B},   
-    {0x3E70, 0x7000},   
-    {0x3E72, 0x8054},   
-    {0x3E74, 0x924C},   
-    {0x3E76, 0x4078},   
-    {0x3E78, 0x4D4F},   
-    {0x3E7A, 0x4E98},   
-    {0x3E7C, 0x504E},   
-    {0x3E7E, 0x4F97},   
-    {0x3E80, 0x4F4E},   
-    {0x3E82, 0x507C},   
-    {0x3E84, 0x7B8D},   
-    {0x3E86, 0x4D88},   
-    {0x3E88, 0x4E10},   
-    {0x3E8A, 0x0940},   
-    {0x3E8C, 0x8879},   
-    {0x3E8E, 0x5481},   
-    {0x3E90, 0x7000},   
-    {0x3E92, 0x8082},   
-    {0x3E94, 0x7281},   
-    {0x3E96, 0x4C40},   
-    {0x3E98, 0x8E4D},   
-    {0x3E9A, 0x8110},   
-    {0x3E9C, 0x0CAF},   
-    {0x3E9E, 0x4D80},   
-    {0x3EA0, 0x100C},   
-    {0x3EA2, 0x8440},   
-    {0x3EA4, 0x4C81},   
-    {0x3EA6, 0x7C93},   
-    {0x3EA8, 0x7000},   
-    {0x3EAA, 0x0000},   
-    {0x3EAC, 0x0000},   
-    {0x3EAE, 0x0000},   
-    {0x3EB0, 0x0000},   
-    {0x3EB2, 0x0000},   
-    {0x3EB4, 0x0000},   
-    {0x3EB6, 0x0000},   
-    {0x3EB8, 0x0000},   
-    {0x3EBA, 0x0000},   
-    {0x3EBC, 0x0000},   
-    {0x3EBE, 0x0000},   
-    {0x3EC0, 0x0000},   
-    {0x3EC2, 0x0000},   
-    {0x3EC4, 0x0000},   
-    {0x3EC6, 0x0000},   
-    {0x3EC8, 0x0000},   
-    {0x3ECA, 0x0000},   
-    {0x30B2, 0xC000},   
-    {0x30D4, 0x9400},   
-    {0x31C0, 0x0000},   
-    {0x316A, 0x8200},   
-    {0x316C, 0x8200},   
-    {0x3EFE, 0x2808},   
-    {0x3EFC, 0x2868},   
-    {0x3ED2, 0xD165},   
-    {0x3EF2, 0xD165},   
-    {0x3ED8, 0x7F1A},   
-    {0x3EDA, 0x2828},   
-    {0x3EE2, 0x0058},   
-    {0x3EFE, 0x280A},   
-    {0x3170, 0x000A},   
-    {0x3174, 0x8060},   
-    {0x317A, 0x000A},   
-    {0x3ECC, 0x22B0},   
-    {0x30BC, 0x0384},   
+    {0x098E, 0x4830},   // LOGICAL_ADDRESS_ACCESS
+    {0xC830, 0x0001},   // CAM_SENSOR_CONTROL_READ_MODE
+    {0xC830, 0x0002},   // CAM_SENSOR_CONTROL_READ_MODE
+    {0x3E00, 0x042D},   // DYNAMIC_SEQRAM_00
+    {0x3E02, 0x39FF},   // DYNAMIC_SEQRAM_02
+    {0x3E04, 0x49FF},   // DYNAMIC_SEQRAM_04
+    {0x3E06, 0xFFFF},   // DYNAMIC_SEQRAM_06
+    {0x3E08, 0x8071},   // DYNAMIC_SEQRAM_08
+    {0x3E0A, 0x7211},   // DYNAMIC_SEQRAM_0A
+    {0x3E0C, 0xE040},   // DYNAMIC_SEQRAM_0C
+    {0x3E0E, 0xA840},   // DYNAMIC_SEQRAM_0E
+    {0x3E10, 0x4100},   // DYNAMIC_SEQRAM_10
+    {0x3E12, 0x1846},   // DYNAMIC_SEQRAM_12
+    {0x3E14, 0xA547},   // DYNAMIC_SEQRAM_14
+    {0x3E16, 0xAD57},   // DYNAMIC_SEQRAM_16
+    {0x3E18, 0x8149},   // DYNAMIC_SEQRAM_18
+    {0x3E1A, 0x9D49},   // DYNAMIC_SEQRAM_1A
+    {0x3E1C, 0x9F46},   // DYNAMIC_SEQRAM_1C
+    {0x3E1E, 0x8000},   // DYNAMIC_SEQRAM_1E
+    {0x3E20, 0x1842},   // DYNAMIC_SEQRAM_20
+    {0x3E22, 0x4180},   // DYNAMIC_SEQRAM_22
+    {0x3E24, 0x0018},   // DYNAMIC_SEQRAM_24
+    {0x3E26, 0x8149},   // DYNAMIC_SEQRAM_26
+    {0x3E28, 0x9C49},   // DYNAMIC_SEQRAM_28
+    {0x3E2A, 0x9347},   // DYNAMIC_SEQRAM_2A
+    {0x3E2C, 0x804D},   // DYNAMIC_SEQRAM_2C
+    {0x3E2E, 0x804A},   // DYNAMIC_SEQRAM_2E
+    {0x3E30, 0x100C},   // DYNAMIC_SEQRAM_30
+    {0x3E32, 0x8000},   // DYNAMIC_SEQRAM_32
+    {0x3E34, 0x1841},   // DYNAMIC_SEQRAM_34
+    {0x3E36, 0x4280},   // DYNAMIC_SEQRAM_36
+    {0x3E38, 0x0018},   // DYNAMIC_SEQRAM_38
+    {0x3E3A, 0x9710},   // DYNAMIC_SEQRAM_3A
+    {0x3E3C, 0x0C80},   // DYNAMIC_SEQRAM_3C
+    {0x3E3E, 0x4DA2},   // DYNAMIC_SEQRAM_3E
+    {0x3E40, 0x4BA0},   // DYNAMIC_SEQRAM_40
+    {0x3E42, 0x4A00},   // DYNAMIC_SEQRAM_42
+    {0x3E44, 0x1880},   // DYNAMIC_SEQRAM_44
+    {0x3E46, 0x4241},   // DYNAMIC_SEQRAM_46
+    {0x3E48, 0x0018},   // DYNAMIC_SEQRAM_48
+    {0x3E4A, 0xB54B},   // DYNAMIC_SEQRAM_4A
+    {0x3E4C, 0x1C00},   // DYNAMIC_SEQRAM_4C
+    {0x3E4E, 0x8000},   // DYNAMIC_SEQRAM_4E
+    {0x3E50, 0x1C10},   // DYNAMIC_SEQRAM_50
+    {0x3E52, 0x6081},   // DYNAMIC_SEQRAM_52
+    {0x3E54, 0x1580},   // DYNAMIC_SEQRAM_54
+    {0x3E56, 0x7C09},   // DYNAMIC_SEQRAM_56
+    {0x3E58, 0x7000},   // DYNAMIC_SEQRAM_58
+    {0x3E5A, 0x8082},   // DYNAMIC_SEQRAM_5A
+    {0x3E5C, 0x7281},   // DYNAMIC_SEQRAM_5C
+    {0x3E5E, 0x4C40},   // DYNAMIC_SEQRAM_5E
+    {0x3E60, 0x8E4D},   // DYNAMIC_SEQRAM_60
+    {0x3E62, 0x8110},   // DYNAMIC_SEQRAM_62
+    {0x3E64, 0x0CAF},   // DYNAMIC_SEQRAM_64
+    {0x3E66, 0x4D80},   // DYNAMIC_SEQRAM_66
+    {0x3E68, 0x100C},   // DYNAMIC_SEQRAM_68
+    {0x3E6A, 0x8440},   // DYNAMIC_SEQRAM_6A
+    {0x3E6C, 0x4C81},   // DYNAMIC_SEQRAM_6C
+    {0x3E6E, 0x7C5B},   // DYNAMIC_SEQRAM_6E
+    {0x3E70, 0x7000},   // DYNAMIC_SEQRAM_70
+    {0x3E72, 0x8054},   // DYNAMIC_SEQRAM_72
+    {0x3E74, 0x924C},   // DYNAMIC_SEQRAM_74
+    {0x3E76, 0x4078},   // DYNAMIC_SEQRAM_76
+    {0x3E78, 0x4D4F},   // DYNAMIC_SEQRAM_78
+    {0x3E7A, 0x4E98},   // DYNAMIC_SEQRAM_7A
+    {0x3E7C, 0x504E},   // DYNAMIC_SEQRAM_7C
+    {0x3E7E, 0x4F97},   // DYNAMIC_SEQRAM_7E
+    {0x3E80, 0x4F4E},   // DYNAMIC_SEQRAM_80
+    {0x3E82, 0x507C},   // DYNAMIC_SEQRAM_82
+    {0x3E84, 0x7B8D},   // DYNAMIC_SEQRAM_84
+    {0x3E86, 0x4D88},   // DYNAMIC_SEQRAM_86
+    {0x3E88, 0x4E10},   // DYNAMIC_SEQRAM_88
+    {0x3E8A, 0x0940},   // DYNAMIC_SEQRAM_8A
+    {0x3E8C, 0x8879},   // DYNAMIC_SEQRAM_8C
+    {0x3E8E, 0x5481},   // DYNAMIC_SEQRAM_8E
+    {0x3E90, 0x7000},   // DYNAMIC_SEQRAM_90
+    {0x3E92, 0x8082},   // DYNAMIC_SEQRAM_92
+    {0x3E94, 0x7281},   // DYNAMIC_SEQRAM_94
+    {0x3E96, 0x4C40},   // DYNAMIC_SEQRAM_96
+    {0x3E98, 0x8E4D},   // DYNAMIC_SEQRAM_98
+    {0x3E9A, 0x8110},   // DYNAMIC_SEQRAM_9A
+    {0x3E9C, 0x0CAF},   // DYNAMIC_SEQRAM_9C
+    {0x3E9E, 0x4D80},   // DYNAMIC_SEQRAM_9E
+    {0x3EA0, 0x100C},   // DYNAMIC_SEQRAM_A0
+    {0x3EA2, 0x8440},   // DYNAMIC_SEQRAM_A2
+    {0x3EA4, 0x4C81},   // DYNAMIC_SEQRAM_A4
+    {0x3EA6, 0x7C93},   // DYNAMIC_SEQRAM_A6
+    {0x3EA8, 0x7000},   // DYNAMIC_SEQRAM_A8
+    {0x3EAA, 0x0000},   // DYNAMIC_SEQRAM_AA
+    {0x3EAC, 0x0000},   // DYNAMIC_SEQRAM_AC
+    {0x3EAE, 0x0000},   // DYNAMIC_SEQRAM_AE
+    {0x3EB0, 0x0000},   // DYNAMIC_SEQRAM_B0
+    {0x3EB2, 0x0000},   // DYNAMIC_SEQRAM_B2
+    {0x3EB4, 0x0000},   // DYNAMIC_SEQRAM_B4
+    {0x3EB6, 0x0000},   // DYNAMIC_SEQRAM_B6
+    {0x3EB8, 0x0000},   // DYNAMIC_SEQRAM_B8
+    {0x3EBA, 0x0000},   // DYNAMIC_SEQRAM_BA
+    {0x3EBC, 0x0000},   // DYNAMIC_SEQRAM_BC
+    {0x3EBE, 0x0000},   // DYNAMIC_SEQRAM_BE
+    {0x3EC0, 0x0000},   // DYNAMIC_SEQRAM_C0
+    {0x3EC2, 0x0000},   // DYNAMIC_SEQRAM_C2
+    {0x3EC4, 0x0000},   // DYNAMIC_SEQRAM_C4
+    {0x3EC6, 0x0000},   // DYNAMIC_SEQRAM_C6
+    {0x3EC8, 0x0000},   // DYNAMIC_SEQRAM_C8
+    {0x3ECA, 0x0000},   // DYNAMIC_SEQRAM_CA
+    {0x30B2, 0xC000},   // CALIB_TIED_OFFSET
+    {0x30D4, 0x9400},   // COLUMN_CORRECTION
+    {0x31C0, 0x0000},   // FUSE_REF_ADDR
+    {0x316A, 0x8200},   // DAC_FBIAS
+    {0x316C, 0x8200},   // DAC_TXLO
+    {0x3EFE, 0x2808},   // DAC_LD_TXLO
+    {0x3EFC, 0x2868},   // DAC_LD_FBIAS
+    {0x3ED2, 0xD165},   // DAC_LD_6_7
+    {0x3EF2, 0xD165},   // DAC_LP_6_7
+    {0x3ED8, 0x7F1A},   // DAC_LD_12_13
+    {0x3EDA, 0x2828},   // DAC_LD_14_15
+    {0x3EE2, 0x0058},   // DAC_LD_22_23
+    {0x3EFE, 0x280A},   // DAC_LD_TXLO
+    {0x3170, 0x000A},   // ANALOG_CONTROL
+    {0x3174, 0x8060},   // ANALOG_CONTROL3
+    {0x317A, 0x000A},   // ANALOG_CONTROL6
+    {0x3ECC, 0x22B0},   // DAC_LD_0_1
+    {0x30BC, 0x0384},   // CALIB_GLOBAL
 
-    {0x098E, 0x0000},   
-    {0xC9F2, 0x0010},   
-    {0xC9F4, 0x0AF0},   
-    {0xC9F6, 0x8000},   
-    {0xC9F8, 0x8000},   
-    {0xC9FA, 0x8000},   
-    {0xC9FC, 0x8000},   
-    {0xC9FE, 0x0FA0},   
-    {0xCA00, 0x8000},   
-    {0xCA02, 0x8000},   
-    {0xCA04, 0x8000},   
-    {0xCA06, 0x8000},   
-    {0xCA08, 0x1964},   
-    {0xCA0A, 0x8000},   
-    {0xCA0C, 0x8000},   
-    {0xCA0E, 0x8000},   
-    {0xCA10, 0x8000},   
-    {0xD1BC, 0x00F0},   
-    {0xD1BE, 0xA1ED},   
-    {0xD1C0, 0x20B2},   
-    {0xD1C2, 0x5F6A},   
-    {0xD1C4, 0x18F3},   
-    {0xD1C6, 0x0150},   
-    {0xD1C8, 0x508D},   
-    {0xD1CA, 0x1133},   
-    {0xD1CC, 0x3971},   
-    {0xD1CE, 0x7AF2},   
-    {0xD1D0, 0x01B0},   
-    {0xD1D2, 0xF108},   
-    {0xD1D4, 0x0ED1},   
-    {0xD1D6, 0x9A50},   
-    {0xD1D8, 0x04B3},   
-    {0xD1DA, 0x0AF0},   
-    {0xD1DC, 0x30EC},   
-    {0xD1DE, 0x6332},   
-    {0xD1E0, 0x7D8F},   
-    {0xD1E2, 0x7352},   
-    {0xD1E4, 0x206A},   
-    {0xD1E6, 0xDCEF},   
-    {0xD1E8, 0xACF0},   
-    {0xD1EA, 0x5BD0},   
-    {0xD1EC, 0xC311},   
-    {0xD1EE, 0x63CB},   
-    {0xD1F0, 0x620F},   
-    {0xD1F2, 0x9E70},   
-    {0xD1F4, 0xCD70},   
-    {0xD1F6, 0x8C13},   
-    {0xD1F8, 0xA6CA},   
-    {0xD1FA, 0x06EF},   
-    {0xD1FC, 0x3D8C},   
-    {0xD1FE, 0x59CE},   
-    {0xD200, 0xAE11},   
-    {0xD202, 0x882D},   
-    {0xD204, 0xD04F},   
-    {0xD206, 0xE3EC},   
-    {0xD208, 0x7A8D},   
-    {0xD20A, 0xBA10},   
-    {0xD20C, 0x4052},   
-    {0xD20E, 0x0311},   
-    {0xD210, 0x78D5},   
-    {0xD212, 0x39B2},   
-    {0xD214, 0xF657},   
-    {0xD216, 0x0793},   
-    {0xD218, 0x5F11},   
-    {0xD21A, 0x2D16},   
-    {0xD21C, 0xC634},   
-    {0xD21E, 0xA5F8},   
-    {0xD220, 0x4791},   
-    {0xD222, 0x3D30},   
-    {0xD224, 0x1FB5},   
-    {0xD226, 0x3C32},   
-    {0xD228, 0xF296},   
-    {0xD22A, 0x1492},   
-    {0xD22C, 0x41D0},   
-    {0xD22E, 0x1456},   
-    {0xD230, 0xFBB3},   
-    {0xD232, 0x93F8},   
-    {0xD234, 0x0FAF},   
-    {0xD236, 0x87AE},   
-    {0xD238, 0x8A93},   
-    {0xD23A, 0x5F93},   
-    {0xD23C, 0x1236},   
-    {0xD23E, 0x3E70},   
-    {0xD240, 0x3C90},   
-    {0xD242, 0xD7D4},   
-    {0xD244, 0xBB2F},   
-    {0xD246, 0x3D36},   
-    {0xD248, 0x8270},   
-    {0xD24A, 0x04F1},   
-    {0xD24C, 0x3634},   
-    {0xD24E, 0x7911},   
-    {0xD250, 0xD9D5},   
-    {0xD252, 0xB74F},   
-    {0xD254, 0xF08E},   
-    {0xD256, 0x5D54},   
-    {0xD258, 0x09F4},   
-    {0xD25A, 0x83B7},   
-    {0xD25C, 0x59B2},   
-    {0xD25E, 0x64D3},   
-    {0xD260, 0xD457},   
-    {0xD262, 0xC397},   
-    {0xD264, 0x4397},   
-    {0xD266, 0x0D14},   
-    {0xD268, 0xCE53},   
-    {0xD26A, 0xF8B7},   
-    {0xD26C, 0x82D7},   
-    {0xD26E, 0xBDD9},   
-    {0xD270, 0x0613},   
-    {0xD272, 0xF772},   
-    {0xD274, 0xECB6},   
-    {0xD276, 0x6115},   
-    {0xD278, 0x1159},   
-    {0xD27A, 0x3F73},   
-    {0xD27C, 0x83B1},   
-    {0xD27E, 0x9198},   
-    {0xD280, 0xC4B4},   
-    {0xD282, 0x5677},   
-    {0xD286, 0x0400},   
-    {0xD284, 0x025C},   
-    {0xD0F0, 0x0130},   
-    {0xD0F2, 0x88CE},   
-    {0xD0F4, 0x2BB2},   
-    {0xD0F6, 0xE44E},   
-    {0xD0F8, 0x0B93},   
-    {0xD0FA, 0x01F0},   
-    {0xD0FC, 0x19EB},   
-    {0xD0FE, 0x24D2},   
-    {0xD100, 0x61F0},   
-    {0xD102, 0x4A52},   
-    {0xD104, 0x00D0},   
-    {0xD106, 0x942C},   
-    {0xD108, 0x1A71},   
-    {0xD10A, 0xA950},   
-    {0xD10C, 0x0A13},   
-    {0xD10E, 0x06B0},   
-    {0xD110, 0xF6EC},   
-    {0xD112, 0x4692},   
-    {0xD114, 0x2C4F},   
-    {0xD116, 0x7BF2},   
-    {0xD118, 0x1E4C},   
-    {0xD11A, 0xC00F},   
-    {0xD11C, 0xFBAF},   
-    {0xD11E, 0x76F0},   
-    {0xD120, 0xB492},   
-    {0xD122, 0x5B8C},   
-    {0xD124, 0x4DEF},   
-    {0xD126, 0xF0CF},   
-    {0xD128, 0xA9B0},   
-    {0xD12A, 0xBF51},   
-    {0xD12C, 0x0FE9},   
-    {0xD12E, 0x3A4F},   
-    {0xD130, 0x2D30},   
-    {0xD132, 0x16AF},   
-    {0xD134, 0xC8D2},   
-    {0xD136, 0x040B},   
-    {0xD138, 0xBFAF},   
-    {0xD13A, 0x30AF},   
-    {0xD13C, 0x71CA},   
-    {0xD13E, 0xAD92},   
-    {0xD140, 0x36D2},   
-    {0xD142, 0x53ED},   
-    {0xD144, 0x0016},   
-    {0xD146, 0x26D4},   
-    {0xD148, 0xF1F7},   
-    {0xD14A, 0x55B2},   
-    {0xD14C, 0x6B8F},   
-    {0xD14E, 0x4435},   
-    {0xD150, 0xEAF2},   
-    {0xD152, 0xA737},   
-    {0xD154, 0x5B71},   
-    {0xD156, 0x40AF},   
-    {0xD158, 0x4455},   
-    {0xD15A, 0x4753},   
-    {0xD15C, 0x95B7},   
-    {0xD15E, 0x2BF2},   
-    {0xD160, 0x86CF},   
-    {0xD162, 0x0A96},   
-    {0xD164, 0xC14F},   
-    {0xD166, 0x8358},   
-    {0xD168, 0x31EF},   
-    {0xD16A, 0x598E},   
-    {0xD16C, 0x8DF4},   
-    {0xD16E, 0x3952},   
-    {0xD170, 0x3656},   
-    {0xD172, 0x7D0F},   
-    {0xD174, 0x0B10},   
-    {0xD176, 0xB8F3},   
-    {0xD178, 0x9953},   
-    {0xD17A, 0x4274},   
-    {0xD17C, 0xC4EF},   
-    {0xD17E, 0x0611},   
-    {0xD180, 0x7133},   
-    {0xD182, 0x45EF},   
-    {0xD184, 0xEA55},   
-    {0xD186, 0x85AF},   
-    {0xD188, 0xE690},   
-    {0xD18A, 0x71B3},   
-    {0xD18C, 0x7834},   
-    {0xD18E, 0xC056},   
-    {0xD190, 0x3E50},   
-    {0xD192, 0x0C14},   
-    {0xD194, 0x91D8},   
-    {0xD196, 0xB8F7},   
-    {0xD198, 0x4158},   
-    {0xD19A, 0xEE51},   
-    {0xD19C, 0xC212},   
-    {0xD19E, 0xB8F7},   
-    {0xD1A0, 0xB8D5},   
-    {0xD1A2, 0x55D6},   
-    {0xD1A4, 0x1152},   
-    {0xD1A6, 0xA7AE},   
-    {0xD1A8, 0xC6D7},   
-    {0xD1AA, 0xBB14},   
-    {0xD1AC, 0x1F59},   
-    {0xD1AE, 0x33D1},   
-    {0xD1B0, 0x5BCF},   
-    {0xD1B2, 0x8978},   
-    {0xD1B4, 0x6EF4},   
-    {0xD1B6, 0x1736},   
-    {0xD1BA, 0x03E0},   
-    {0xD1B8, 0x0268},   
-    {0xD024, 0x00B0},   
-    {0xD026, 0x89AC},   
-    {0xD028, 0x3072},   
-    {0xD02A, 0x22CE},   
-    {0xD02C, 0x1613},   
-    {0xD02E, 0x01D0},   
-    {0xD030, 0x078E},   
-    {0xD032, 0x56D2},   
-    {0xD034, 0x3531},   
-    {0xD036, 0x48B2},   
-    {0xD038, 0x00F0},   
-    {0xD03A, 0xAEE2},   
-    {0xD03C, 0x6B71},   
-    {0xD03E, 0xE8AD},   
-    {0xD040, 0x06F3},   
-    {0xD042, 0x06F0},   
-    {0xD044, 0x522C},   
-    {0xD046, 0x3D92},   
-    {0xD048, 0x1FB0},   
-    {0xD04A, 0x6C92},   
-    {0xD04C, 0x4F29},   
-    {0xD04E, 0xD50F},   
-    {0xD050, 0xE9B0},   
-    {0xD052, 0x54AF},   
-    {0xD054, 0xE8D1},   
-    {0xD056, 0x27EC},   
-    {0xD058, 0x4B4F},   
-    {0xD05A, 0xAF70},   
-    {0xD05C, 0x9011},   
-    {0xD05E, 0xE771},   
-    {0xD060, 0x61AA},   
-    {0xD062, 0x438F},   
-    {0xD064, 0x3F2F},   
-    {0xD066, 0x00D0},   
-    {0xD068, 0xFE51},   
-    {0xD06A, 0xA48B},   
-    {0xD06C, 0xB78F},   
-    {0xD06E, 0x23AC},   
-    {0xD070, 0x972D},   
-    {0xD072, 0x8FD0},   
-    {0xD074, 0x2F92},   
-    {0xD076, 0x3211},   
-    {0xD078, 0x0756},   
-    {0xD07A, 0x24D1},   
-    {0xD07C, 0x8038},   
-    {0xD07E, 0x6F52},   
-    {0xD080, 0x11D2},   
-    {0xD082, 0x0AF6},   
-    {0xD084, 0xFA54},   
-    {0xD086, 0x8458},   
-    {0xD088, 0x02D2},   
-    {0xD08A, 0x5DB1},   
-    {0xD08C, 0x6575},   
-    {0xD08E, 0x9C90},   
-    {0xD090, 0xBFB7},   
-    {0xD092, 0x2452},   
-    {0xD094, 0x1351},   
-    {0xD096, 0x07D6},   
-    {0xD098, 0xBDF4},   
-    {0xD09A, 0xFC97},   
-    {0xD09C, 0x030F},   
-    {0xD09E, 0xE90F},   
-    {0xD0A0, 0xA173},   
-    {0xD0A2, 0x3154},   
-    {0xD0A4, 0x42F6},   
-    {0xD0A6, 0x0B31},   
-    {0xD0A8, 0x01CF},   
-    {0xD0AA, 0x8F74},   
-    {0xD0AC, 0x39F2},   
-    {0xD0AE, 0x7A15},   
-    {0xD0B0, 0x994F},   
-    {0xD0B2, 0x1512},   
-    {0xD0B4, 0x5C94},   
-    {0xD0B6, 0x95F4},   
-    {0xD0B8, 0xF956},   
-    {0xD0BA, 0xFEAE},   
-    {0xD0BC, 0x9371},   
-    {0xD0BE, 0x6454},   
-    {0xD0C0, 0x35B4},   
-    {0xD0C2, 0x8A77},   
-    {0xD0C4, 0x40F0},   
-    {0xD0C6, 0x6A33},   
-    {0xD0C8, 0x8038},   
-    {0xD0CA, 0x8098},   
-    {0xD0CC, 0xA350},   
-    {0xD0CE, 0x0453},   
-    {0xD0D0, 0xAB14},   
-    {0xD0D2, 0xA418},   
-    {0xD0D4, 0xC2D5},   
-    {0xD0D6, 0x5198},   
-    {0xD0D8, 0x52D2},   
-    {0xD0DA, 0xF7D2},   
-    {0xD0DC, 0xC197},   
-    {0xD0DE, 0xA935},   
-    {0xD0E0, 0x1558},   
-    {0xD0E2, 0x0992},   
-    {0xD0E4, 0xC5B3},   
-    {0xD0E6, 0xEED7},   
-    {0xD0E8, 0x4BD4},   
-    {0xD0EA, 0xB096},   
-    {0xD0EE, 0x040C},   
-    {0xD0EC, 0x025C},   
-    {0xC9F2, 0x0011},   
-    {0xC9F2, 0x0011},   
-    {0xD018, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01E, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01D, 0x4B,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01C, 0xAA,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD021, 0x50,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD020, 0xAF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01F, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xD01B, 0x03,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9F2, 0x0011},   
-    {0x098E, 0x0000},   
-    {0xC894, 0x00FE},   
-    {0xC896, 0xFFA6},   
-    {0xC898, 0x005D},   
-    {0xC89A, 0x000A},   
-    {0xC89C, 0x00B5},   
-    {0xC89E, 0x0041},   
-    {0xC8A0, 0xFFF3},   
-    {0xC8A2, 0xFF9F},   
-    {0xC8A4, 0x016E},   
-    {0xC8CA, 0x0056},   
-    {0xC8CC, 0x01A8},   
-    {0xC8A6, 0x01C8},   
-    {0xC8A8, 0xFF01},   
-    {0xC8AA, 0x0036},   
-    {0xC8AC, 0xFFFE},   
-    {0xC8AE, 0x00F0},   
-    {0xC8B0, 0x0012},   
-    {0xC8B2, 0xFFD7},   
-    {0xC8B4, 0xFF23},   
-    {0xC8B6, 0x0206},   
-    {0xC8CE, 0x0087},   
-    {0xC8D0, 0x0157},   
-    {0xC8B8, 0x0182},   
-    {0xC8BA, 0xFF58},   
-    {0xC8BC, 0x0027},   
-    {0xC8BE, 0xFFF9},   
-    {0xC8C0, 0x00D3},   
-    {0xC8C2, 0x0034},   
-    {0xC8C4, 0xFFF4},   
-    {0xC8C6, 0xFF60},   
-    {0xC8C8, 0x01AC},   
-    {0xC8D2, 0x00BF},   
-    {0xC8D4, 0x00CD},   
-    {0xC8D6, 0x09C4},   
-    {0xC8D8, 0x0D67},   
-    {0xC8DA, 0x1964},   
-    {0xAC0A, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC0B, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC0C, 0x22,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC0D, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC8EE, 0x09C4},   
-    {0xC8F0, 0x1964},   
-    {0xAC06, 0x63,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC07, 0x65,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC08, 0x63,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xAC09, 0x65,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC95C, 0x0020},   
-    {0xC95E, 0x000F},   
-    {0xC8F4, 0x0080},   
-    {0xC8F6, 0x00AB},   
-    {0xC8F8, 0x0000},   
-    {0xC8FA, 0x03D9},   
-    {0xC8FD, 0x2A,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC8FC, 0x30,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC900, 0x0000},   
-    {0xC902, 0x0000},   
-    {0xC904, 0x0000},   
-    {0xC906, 0x0000},   
-    {0xC908, 0x0000},   
-    {0xC90A, 0x0111},   
-    {0xC90C, 0x1110},   
-    {0xC90E, 0x0000},   
-    {0xC910, 0x0000},   
-    {0xC912, 0x1122},   
-    {0xC914, 0x2222},   
-    {0xC916, 0x1100},   
-    {0xC918, 0x0112},   
-    {0xC91A, 0x2333},   
-    {0xC91C, 0x3333},   
-    {0xC91E, 0x3211},   
-    {0xC920, 0x1234},   
-    {0xC922, 0x4554},   
-    {0xC924, 0x3334},   
-    {0xC926, 0x4321},   
-    {0xC928, 0x1345},   
-    {0xC92A, 0x5554},   
-    {0xC92C, 0x3223},   
-    {0xC92E, 0x3332},   
-    {0xC930, 0x1234},   
-    {0xC932, 0x4443},   
-    {0xC934, 0x2111},   
-    {0xC936, 0x2221},   
-    {0xC938, 0x0112},   
-    {0xC93A, 0x2221},   
-    {0xC93C, 0x1100},   
-    {0xC93E, 0x0010},   
-    {0x33F4, 0x0517},   
-    {0x098E, 0x481A},   
-    {0xC81A, 0x003D},   
-    {0xC81C, 0x03F8},   
-    {0xC96C, 0x06,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC971, 0x2B,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96E, 0x07,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96D, 0x18,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC973, 0x1C,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC972, 0x53,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96F, 0x0C,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC970, 0x14,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC974, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC975, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC976, 0x0E,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC977, 0x07,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC978, 0x0A,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC979, 0x32,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC97A, 0xE3,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC97C, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC97B, 0x9D,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC97D, 0x64,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0x33F4, 0x0515},   
-    {0xC9CE, 0x0040},   
-    {0xC9D0, 0x0800},   
-    {0xC9D2, 0x1000},   
-    {0xC984, 0x00E2},   
-    {0xC988, 0x00D1},   
-    {0xC98C, 0x00DE},   
-    {0xC990, 0x00D4},   
-    {0xC994, 0x0319},   
-    {0xC998, 0x01AD},   
-    {0xC986, 0x00A0},   
-    {0xC98A, 0x00B5},   
-    {0xC98E, 0x0127},   
-    {0xC992, 0x00DD},   
-    {0xC996, 0x027D},   
-    {0xC99A, 0x011B},   
-    {0xC97E, 0x000F},   
-    {0xC980, 0x0005},   
-    {0xC99C, 0x0009},   
-    {0xC99E, 0x000E},   
-    {0xC9A0, 0x000B},   
-    {0xC9A2, 0x0025},   
-    {0xC9A4, 0x0055},   
-    {0xC9A6, 0x00FF},   
-    {0x33F4, 0x0D15},   
-    {0xC9A8, 0x0040},   
-    {0xC9AE, 0x07,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9B2, 0x0076},   
-    {0xC9AA, 0x0200},   
-    {0xC9AF, 0x0F,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9B4, 0x0064},   
-    {0xC9AC, 0x0400},   
-    {0xC9B0, 0x17,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9B6, 0x0061},   
-    {0xBC02, 0x001B},   
-    {0xC9BE, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0x3398, 0x0030},   
-    {0x3398, 0x0030},   
-    {0x3398, 0x0030},   
-    {0xC9B1, 0x01,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9B8, 0x021F},   
-    {0xC9AE, 0x0A,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9B2, 0x00B1},   
-    {0xC9AF, 0x16,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9B4, 0x0096},   
-    {0xC9B0, 0x22,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9B6, 0x0092},   
-    {0x326E, 0x0086},   
-    {0x3270, 0x0FAA},   
-    {0x3272, 0x0FE4},   
-    {0xC9CA, 0x0040},   
-    {0xC9CC, 0x1000},   
-    {0xC9CE, 0x0040},   
-    {0xC9D2, 0x1000},   
-    {0x098E, 0xC944},   
-    {0xC944, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC945, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC946, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC947, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC948, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC949, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC962, 0x0032},   
-    {0xC964, 0x0BB8},   
-    {0xC88A, 0x0180},   
-    {0xC87E, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC87F, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     
-    
-    {0xA808, 0x0019},   
-    
-    {0x32B2, 0x2518},   
-    {0xB402, 0x0002},   
-    {0xC968, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC969, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96A, 0x18,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC96B, 0x0F,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xB42A, 0x05,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC8DC, 0x0100},   
-    {0xC8DE, 0x0000},   
-    {0xC8E0, 0x0000},   
-    {0xC8E2, 0x0000},   
-    {0xC8E4, 0x0100},   
-    {0xC8E6, 0x0000},   
-    {0xC8E8, 0x0000},   
-    {0xC8EA, 0x0000},   
-    {0xC8EC, 0x0100},   
-    {0x098E, 0x4A1C},   
-    {0xCA1C, 0x8040},   
-    {0x001E, 0x0777},   
-    {0xCA1C, 0x8041},   
-    {0xC888, 0x0080},   
-    {0xC88A, 0x0180},   
-    {0xC882, 0x000A},   
-    {0xC81A, 0x0040},   
-    {0xC81C, 0x01F8},   
-    {0xC9EF, 0x52,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9F0, 0x52,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC966, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0x098E, 0xDC00},   
-    {0xDC00, 0x28,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0x0080, 0x8002},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xC9F2, 0x0010},   // CAM_PGA_PGA_CONTROL
+    {0xC9F4, 0x0AF0},   // CAM_PGA_L_CONFIG_COLOUR_TEMP
+    {0xC9F6, 0x8000},   // CAM_PGA_L_CONFIG_GREEN_RED_Q14
+    {0xC9F8, 0x8000},   // CAM_PGA_L_CONFIG_RED_Q14
+    {0xC9FA, 0x8000},   // CAM_PGA_L_CONFIG_GREEN_BLUE_Q14
+    {0xC9FC, 0x8000},   // CAM_PGA_L_CONFIG_BLUE_Q14
+    {0xC9FE, 0x0FA0},   // CAM_PGA_M_CONFIG_COLOUR_TEMP
+    {0xCA00, 0x8000},   // CAM_PGA_M_CONFIG_GREEN_RED_Q14
+    {0xCA02, 0x8000},   // CAM_PGA_M_CONFIG_RED_Q14
+    {0xCA04, 0x8000},   // CAM_PGA_M_CONFIG_GREEN_BLUE_Q14
+    {0xCA06, 0x8000},   // CAM_PGA_M_CONFIG_BLUE_Q14
+    {0xCA08, 0x1964},   // CAM_PGA_R_CONFIG_COLOUR_TEMP
+    {0xCA0A, 0x8000},   // CAM_PGA_R_CONFIG_GREEN_RED_Q14
+    {0xCA0C, 0x8000},   // CAM_PGA_R_CONFIG_RED_Q14
+    {0xCA0E, 0x8000},   // CAM_PGA_R_CONFIG_GREEN_BLUE_Q14
+    {0xCA10, 0x8000},   // CAM_PGA_R_CONFIG_BLUE_Q14
+    {0xD1BC, 0x00F0},   // PGA_TABLE_A_DATA_0
+    {0xD1BE, 0xA1ED},   // PGA_TABLE_A_DATA_1
+    {0xD1C0, 0x20B2},   // PGA_TABLE_A_DATA_2
+    {0xD1C2, 0x5F6A},   // PGA_TABLE_A_DATA_3
+    {0xD1C4, 0x18F3},   // PGA_TABLE_A_DATA_4
+    {0xD1C6, 0x0150},   // PGA_TABLE_A_DATA_5
+    {0xD1C8, 0x508D},   // PGA_TABLE_A_DATA_6
+    {0xD1CA, 0x1133},   // PGA_TABLE_A_DATA_7
+    {0xD1CC, 0x3971},   // PGA_TABLE_A_DATA_8
+    {0xD1CE, 0x7AF2},   // PGA_TABLE_A_DATA_9
+    {0xD1D0, 0x01B0},   // PGA_TABLE_A_DATA_10
+    {0xD1D2, 0xF108},   // PGA_TABLE_A_DATA_11
+    {0xD1D4, 0x0ED1},   // PGA_TABLE_A_DATA_12
+    {0xD1D6, 0x9A50},   // PGA_TABLE_A_DATA_13
+    {0xD1D8, 0x04B3},   // PGA_TABLE_A_DATA_14
+    {0xD1DA, 0x0AF0},   // PGA_TABLE_A_DATA_15
+    {0xD1DC, 0x30EC},   // PGA_TABLE_A_DATA_16
+    {0xD1DE, 0x6332},   // PGA_TABLE_A_DATA_17
+    {0xD1E0, 0x7D8F},   // PGA_TABLE_A_DATA_18
+    {0xD1E2, 0x7352},   // PGA_TABLE_A_DATA_19
+    {0xD1E4, 0x206A},   // PGA_TABLE_A_DATA_20
+    {0xD1E6, 0xDCEF},   // PGA_TABLE_A_DATA_21
+    {0xD1E8, 0xACF0},   // PGA_TABLE_A_DATA_22
+    {0xD1EA, 0x5BD0},   // PGA_TABLE_A_DATA_23
+    {0xD1EC, 0xC311},   // PGA_TABLE_A_DATA_24
+    {0xD1EE, 0x63CB},   // PGA_TABLE_A_DATA_25
+    {0xD1F0, 0x620F},   // PGA_TABLE_A_DATA_26
+    {0xD1F2, 0x9E70},   // PGA_TABLE_A_DATA_27
+    {0xD1F4, 0xCD70},   // PGA_TABLE_A_DATA_28
+    {0xD1F6, 0x8C13},   // PGA_TABLE_A_DATA_29
+    {0xD1F8, 0xA6CA},   // PGA_TABLE_A_DATA_30
+    {0xD1FA, 0x06EF},   // PGA_TABLE_A_DATA_31
+    {0xD1FC, 0x3D8C},   // PGA_TABLE_A_DATA_32
+    {0xD1FE, 0x59CE},   // PGA_TABLE_A_DATA_33
+    {0xD200, 0xAE11},   // PGA_TABLE_A_DATA_34
+    {0xD202, 0x882D},   // PGA_TABLE_A_DATA_35
+    {0xD204, 0xD04F},   // PGA_TABLE_A_DATA_36
+    {0xD206, 0xE3EC},   // PGA_TABLE_A_DATA_37
+    {0xD208, 0x7A8D},   // PGA_TABLE_A_DATA_38
+    {0xD20A, 0xBA10},   // PGA_TABLE_A_DATA_39
+    {0xD20C, 0x4052},   // PGA_TABLE_A_DATA_40
+    {0xD20E, 0x0311},   // PGA_TABLE_A_DATA_41
+    {0xD210, 0x78D5},   // PGA_TABLE_A_DATA_42
+    {0xD212, 0x39B2},   // PGA_TABLE_A_DATA_43
+    {0xD214, 0xF657},   // PGA_TABLE_A_DATA_44
+    {0xD216, 0x0793},   // PGA_TABLE_A_DATA_45
+    {0xD218, 0x5F11},   // PGA_TABLE_A_DATA_46
+    {0xD21A, 0x2D16},   // PGA_TABLE_A_DATA_47
+    {0xD21C, 0xC634},   // PGA_TABLE_A_DATA_48
+    {0xD21E, 0xA5F8},   // PGA_TABLE_A_DATA_49
+    {0xD220, 0x4791},   // PGA_TABLE_A_DATA_50
+    {0xD222, 0x3D30},   // PGA_TABLE_A_DATA_51
+    {0xD224, 0x1FB5},   // PGA_TABLE_A_DATA_52
+    {0xD226, 0x3C32},   // PGA_TABLE_A_DATA_53
+    {0xD228, 0xF296},   // PGA_TABLE_A_DATA_54
+    {0xD22A, 0x1492},   // PGA_TABLE_A_DATA_55
+    {0xD22C, 0x41D0},   // PGA_TABLE_A_DATA_56
+    {0xD22E, 0x1456},   // PGA_TABLE_A_DATA_57
+    {0xD230, 0xFBB3},   // PGA_TABLE_A_DATA_58
+    {0xD232, 0x93F8},   // PGA_TABLE_A_DATA_59
+    {0xD234, 0x0FAF},   // PGA_TABLE_A_DATA_60
+    {0xD236, 0x87AE},   // PGA_TABLE_A_DATA_61
+    {0xD238, 0x8A93},   // PGA_TABLE_A_DATA_62
+    {0xD23A, 0x5F93},   // PGA_TABLE_A_DATA_63
+    {0xD23C, 0x1236},   // PGA_TABLE_A_DATA_64
+    {0xD23E, 0x3E70},   // PGA_TABLE_A_DATA_65
+    {0xD240, 0x3C90},   // PGA_TABLE_A_DATA_66
+    {0xD242, 0xD7D4},   // PGA_TABLE_A_DATA_67
+    {0xD244, 0xBB2F},   // PGA_TABLE_A_DATA_68
+    {0xD246, 0x3D36},   // PGA_TABLE_A_DATA_69
+    {0xD248, 0x8270},   // PGA_TABLE_A_DATA_70
+    {0xD24A, 0x04F1},   // PGA_TABLE_A_DATA_71
+    {0xD24C, 0x3634},   // PGA_TABLE_A_DATA_72
+    {0xD24E, 0x7911},   // PGA_TABLE_A_DATA_73
+    {0xD250, 0xD9D5},   // PGA_TABLE_A_DATA_74
+    {0xD252, 0xB74F},   // PGA_TABLE_A_DATA_75
+    {0xD254, 0xF08E},   // PGA_TABLE_A_DATA_76
+    {0xD256, 0x5D54},   // PGA_TABLE_A_DATA_77
+    {0xD258, 0x09F4},   // PGA_TABLE_A_DATA_78
+    {0xD25A, 0x83B7},   // PGA_TABLE_A_DATA_79
+    {0xD25C, 0x59B2},   // PGA_TABLE_A_DATA_80
+    {0xD25E, 0x64D3},   // PGA_TABLE_A_DATA_81
+    {0xD260, 0xD457},   // PGA_TABLE_A_DATA_82
+    {0xD262, 0xC397},   // PGA_TABLE_A_DATA_83
+    {0xD264, 0x4397},   // PGA_TABLE_A_DATA_84
+    {0xD266, 0x0D14},   // PGA_TABLE_A_DATA_85
+    {0xD268, 0xCE53},   // PGA_TABLE_A_DATA_86
+    {0xD26A, 0xF8B7},   // PGA_TABLE_A_DATA_87
+    {0xD26C, 0x82D7},   // PGA_TABLE_A_DATA_88
+    {0xD26E, 0xBDD9},   // PGA_TABLE_A_DATA_89
+    {0xD270, 0x0613},   // PGA_TABLE_A_DATA_90
+    {0xD272, 0xF772},   // PGA_TABLE_A_DATA_91
+    {0xD274, 0xECB6},   // PGA_TABLE_A_DATA_92
+    {0xD276, 0x6115},   // PGA_TABLE_A_DATA_93
+    {0xD278, 0x1159},   // PGA_TABLE_A_DATA_94
+    {0xD27A, 0x3F73},   // PGA_TABLE_A_DATA_95
+    {0xD27C, 0x83B1},   // PGA_TABLE_A_DATA_96
+    {0xD27E, 0x9198},   // PGA_TABLE_A_DATA_97
+    {0xD280, 0xC4B4},   // PGA_TABLE_A_DATA_98
+    {0xD282, 0x5677},   // PGA_TABLE_A_DATA_99
+    {0xD286, 0x0400},   // PGA_TABLE_A_CENTER_COLUMN
+    {0xD284, 0x025C},   // PGA_TABLE_A_CENTER_ROW
+    {0xD0F0, 0x0130},   // PGA_TABLE_CWF_DATA_0
+    {0xD0F2, 0x88CE},   // PGA_TABLE_CWF_DATA_1
+    {0xD0F4, 0x2BB2},   // PGA_TABLE_CWF_DATA_2
+    {0xD0F6, 0xE44E},   // PGA_TABLE_CWF_DATA_3
+    {0xD0F8, 0x0B93},   // PGA_TABLE_CWF_DATA_4
+    {0xD0FA, 0x01F0},   // PGA_TABLE_CWF_DATA_5
+    {0xD0FC, 0x19EB},   // PGA_TABLE_CWF_DATA_6
+    {0xD0FE, 0x24D2},   // PGA_TABLE_CWF_DATA_7
+    {0xD100, 0x61F0},   // PGA_TABLE_CWF_DATA_8
+    {0xD102, 0x4A52},   // PGA_TABLE_CWF_DATA_9
+    {0xD104, 0x00D0},   // PGA_TABLE_CWF_DATA_10
+    {0xD106, 0x942C},   // PGA_TABLE_CWF_DATA_11
+    {0xD108, 0x1A71},   // PGA_TABLE_CWF_DATA_12
+    {0xD10A, 0xA950},   // PGA_TABLE_CWF_DATA_13
+    {0xD10C, 0x0A13},   // PGA_TABLE_CWF_DATA_14
+    {0xD10E, 0x06B0},   // PGA_TABLE_CWF_DATA_15
+    {0xD110, 0xF6EC},   // PGA_TABLE_CWF_DATA_16
+    {0xD112, 0x4692},   // PGA_TABLE_CWF_DATA_17
+    {0xD114, 0x2C4F},   // PGA_TABLE_CWF_DATA_18
+    {0xD116, 0x7BF2},   // PGA_TABLE_CWF_DATA_19
+    {0xD118, 0x1E4C},   // PGA_TABLE_CWF_DATA_20
+    {0xD11A, 0xC00F},   // PGA_TABLE_CWF_DATA_21
+    {0xD11C, 0xFBAF},   // PGA_TABLE_CWF_DATA_22
+    {0xD11E, 0x76F0},   // PGA_TABLE_CWF_DATA_23
+    {0xD120, 0xB492},   // PGA_TABLE_CWF_DATA_24
+    {0xD122, 0x5B8C},   // PGA_TABLE_CWF_DATA_25
+    {0xD124, 0x4DEF},   // PGA_TABLE_CWF_DATA_26
+    {0xD126, 0xF0CF},   // PGA_TABLE_CWF_DATA_27
+    {0xD128, 0xA9B0},   // PGA_TABLE_CWF_DATA_28
+    {0xD12A, 0xBF51},   // PGA_TABLE_CWF_DATA_29
+    {0xD12C, 0x0FE9},   // PGA_TABLE_CWF_DATA_30
+    {0xD12E, 0x3A4F},   // PGA_TABLE_CWF_DATA_31
+    {0xD130, 0x2D30},   // PGA_TABLE_CWF_DATA_32
+    {0xD132, 0x16AF},   // PGA_TABLE_CWF_DATA_33
+    {0xD134, 0xC8D2},   // PGA_TABLE_CWF_DATA_34
+    {0xD136, 0x040B},   // PGA_TABLE_CWF_DATA_35
+    {0xD138, 0xBFAF},   // PGA_TABLE_CWF_DATA_36
+    {0xD13A, 0x30AF},   // PGA_TABLE_CWF_DATA_37
+    {0xD13C, 0x71CA},   // PGA_TABLE_CWF_DATA_38
+    {0xD13E, 0xAD92},   // PGA_TABLE_CWF_DATA_39
+    {0xD140, 0x36D2},   // PGA_TABLE_CWF_DATA_40
+    {0xD142, 0x53ED},   // PGA_TABLE_CWF_DATA_41
+    {0xD144, 0x0016},   // PGA_TABLE_CWF_DATA_42
+    {0xD146, 0x26D4},   // PGA_TABLE_CWF_DATA_43
+    {0xD148, 0xF1F7},   // PGA_TABLE_CWF_DATA_44
+    {0xD14A, 0x55B2},   // PGA_TABLE_CWF_DATA_45
+    {0xD14C, 0x6B8F},   // PGA_TABLE_CWF_DATA_46
+    {0xD14E, 0x4435},   // PGA_TABLE_CWF_DATA_47
+    {0xD150, 0xEAF2},   // PGA_TABLE_CWF_DATA_48
+    {0xD152, 0xA737},   // PGA_TABLE_CWF_DATA_49
+    {0xD154, 0x5B71},   // PGA_TABLE_CWF_DATA_50
+    {0xD156, 0x40AF},   // PGA_TABLE_CWF_DATA_51
+    {0xD158, 0x4455},   // PGA_TABLE_CWF_DATA_52
+    {0xD15A, 0x4753},   // PGA_TABLE_CWF_DATA_53
+    {0xD15C, 0x95B7},   // PGA_TABLE_CWF_DATA_54
+    {0xD15E, 0x2BF2},   // PGA_TABLE_CWF_DATA_55
+    {0xD160, 0x86CF},   // PGA_TABLE_CWF_DATA_56
+    {0xD162, 0x0A96},   // PGA_TABLE_CWF_DATA_57
+    {0xD164, 0xC14F},   // PGA_TABLE_CWF_DATA_58
+    {0xD166, 0x8358},   // PGA_TABLE_CWF_DATA_59
+    {0xD168, 0x31EF},   // PGA_TABLE_CWF_DATA_60
+    {0xD16A, 0x598E},   // PGA_TABLE_CWF_DATA_61
+    {0xD16C, 0x8DF4},   // PGA_TABLE_CWF_DATA_62
+    {0xD16E, 0x3952},   // PGA_TABLE_CWF_DATA_63
+    {0xD170, 0x3656},   // PGA_TABLE_CWF_DATA_64
+    {0xD172, 0x7D0F},   // PGA_TABLE_CWF_DATA_65
+    {0xD174, 0x0B10},   // PGA_TABLE_CWF_DATA_66
+    {0xD176, 0xB8F3},   // PGA_TABLE_CWF_DATA_67
+    {0xD178, 0x9953},   // PGA_TABLE_CWF_DATA_68
+    {0xD17A, 0x4274},   // PGA_TABLE_CWF_DATA_69
+    {0xD17C, 0xC4EF},   // PGA_TABLE_CWF_DATA_70
+    {0xD17E, 0x0611},   // PGA_TABLE_CWF_DATA_71
+    {0xD180, 0x7133},   // PGA_TABLE_CWF_DATA_72
+    {0xD182, 0x45EF},   // PGA_TABLE_CWF_DATA_73
+    {0xD184, 0xEA55},   // PGA_TABLE_CWF_DATA_74
+    {0xD186, 0x85AF},   // PGA_TABLE_CWF_DATA_75
+    {0xD188, 0xE690},   // PGA_TABLE_CWF_DATA_76
+    {0xD18A, 0x71B3},   // PGA_TABLE_CWF_DATA_77
+    {0xD18C, 0x7834},   // PGA_TABLE_CWF_DATA_78
+    {0xD18E, 0xC056},   // PGA_TABLE_CWF_DATA_79
+    {0xD190, 0x3E50},   // PGA_TABLE_CWF_DATA_80
+    {0xD192, 0x0C14},   // PGA_TABLE_CWF_DATA_81
+    {0xD194, 0x91D8},   // PGA_TABLE_CWF_DATA_82
+    {0xD196, 0xB8F7},   // PGA_TABLE_CWF_DATA_83
+    {0xD198, 0x4158},   // PGA_TABLE_CWF_DATA_84
+    {0xD19A, 0xEE51},   // PGA_TABLE_CWF_DATA_85
+    {0xD19C, 0xC212},   // PGA_TABLE_CWF_DATA_86
+    {0xD19E, 0xB8F7},   // PGA_TABLE_CWF_DATA_87
+    {0xD1A0, 0xB8D5},   // PGA_TABLE_CWF_DATA_88
+    {0xD1A2, 0x55D6},   // PGA_TABLE_CWF_DATA_89
+    {0xD1A4, 0x1152},   // PGA_TABLE_CWF_DATA_90
+    {0xD1A6, 0xA7AE},   // PGA_TABLE_CWF_DATA_91
+    {0xD1A8, 0xC6D7},   // PGA_TABLE_CWF_DATA_92
+    {0xD1AA, 0xBB14},   // PGA_TABLE_CWF_DATA_93
+    {0xD1AC, 0x1F59},   // PGA_TABLE_CWF_DATA_94
+    {0xD1AE, 0x33D1},   // PGA_TABLE_CWF_DATA_95
+    {0xD1B0, 0x5BCF},   // PGA_TABLE_CWF_DATA_96
+    {0xD1B2, 0x8978},   // PGA_TABLE_CWF_DATA_97
+    {0xD1B4, 0x6EF4},   // PGA_TABLE_CWF_DATA_98
+    {0xD1B6, 0x1736},   // PGA_TABLE_CWF_DATA_99
+    {0xD1BA, 0x03E0},   // PGA_TABLE_CWF_CENTER_COLUMN
+    {0xD1B8, 0x0268},   // PGA_TABLE_CWF_CENTER_ROW
+    {0xD024, 0x00B0},   // PGA_TABLE_D65_DATA_0
+    {0xD026, 0x89AC},   // PGA_TABLE_D65_DATA_1
+    {0xD028, 0x3072},   // PGA_TABLE_D65_DATA_2
+    {0xD02A, 0x22CE},   // PGA_TABLE_D65_DATA_3
+    {0xD02C, 0x1613},   // PGA_TABLE_D65_DATA_4
+    {0xD02E, 0x01D0},   // PGA_TABLE_D65_DATA_5
+    {0xD030, 0x078E},   // PGA_TABLE_D65_DATA_6
+    {0xD032, 0x56D2},   // PGA_TABLE_D65_DATA_7
+    {0xD034, 0x3531},   // PGA_TABLE_D65_DATA_8
+    {0xD036, 0x48B2},   // PGA_TABLE_D65_DATA_9
+    {0xD038, 0x00F0},   // PGA_TABLE_D65_DATA_10
+    {0xD03A, 0xAEE2},   // PGA_TABLE_D65_DATA_11
+    {0xD03C, 0x6B71},   // PGA_TABLE_D65_DATA_12
+    {0xD03E, 0xE8AD},   // PGA_TABLE_D65_DATA_13
+    {0xD040, 0x06F3},   // PGA_TABLE_D65_DATA_14
+    {0xD042, 0x06F0},   // PGA_TABLE_D65_DATA_15
+    {0xD044, 0x522C},   // PGA_TABLE_D65_DATA_16
+    {0xD046, 0x3D92},   // PGA_TABLE_D65_DATA_17
+    {0xD048, 0x1FB0},   // PGA_TABLE_D65_DATA_18
+    {0xD04A, 0x6C92},   // PGA_TABLE_D65_DATA_19
+    {0xD04C, 0x4F29},   // PGA_TABLE_D65_DATA_20
+    {0xD04E, 0xD50F},   // PGA_TABLE_D65_DATA_21
+    {0xD050, 0xE9B0},   // PGA_TABLE_D65_DATA_22
+    {0xD052, 0x54AF},   // PGA_TABLE_D65_DATA_23
+    {0xD054, 0xE8D1},   // PGA_TABLE_D65_DATA_24
+    {0xD056, 0x27EC},   // PGA_TABLE_D65_DATA_25
+    {0xD058, 0x4B4F},   // PGA_TABLE_D65_DATA_26
+    {0xD05A, 0xAF70},   // PGA_TABLE_D65_DATA_27
+    {0xD05C, 0x9011},   // PGA_TABLE_D65_DATA_28
+    {0xD05E, 0xE771},   // PGA_TABLE_D65_DATA_29
+    {0xD060, 0x61AA},   // PGA_TABLE_D65_DATA_30
+    {0xD062, 0x438F},   // PGA_TABLE_D65_DATA_31
+    {0xD064, 0x3F2F},   // PGA_TABLE_D65_DATA_32
+    {0xD066, 0x00D0},   // PGA_TABLE_D65_DATA_33
+    {0xD068, 0xFE51},   // PGA_TABLE_D65_DATA_34
+    {0xD06A, 0xA48B},   // PGA_TABLE_D65_DATA_35
+    {0xD06C, 0xB78F},   // PGA_TABLE_D65_DATA_36
+    {0xD06E, 0x23AC},   // PGA_TABLE_D65_DATA_37
+    {0xD070, 0x972D},   // PGA_TABLE_D65_DATA_38
+    {0xD072, 0x8FD0},   // PGA_TABLE_D65_DATA_39
+    {0xD074, 0x2F92},   // PGA_TABLE_D65_DATA_40
+    {0xD076, 0x3211},   // PGA_TABLE_D65_DATA_41
+    {0xD078, 0x0756},   // PGA_TABLE_D65_DATA_42
+    {0xD07A, 0x24D1},   // PGA_TABLE_D65_DATA_43
+    {0xD07C, 0x8038},   // PGA_TABLE_D65_DATA_44
+    {0xD07E, 0x6F52},   // PGA_TABLE_D65_DATA_45
+    {0xD080, 0x11D2},   // PGA_TABLE_D65_DATA_46
+    {0xD082, 0x0AF6},   // PGA_TABLE_D65_DATA_47
+    {0xD084, 0xFA54},   // PGA_TABLE_D65_DATA_48
+    {0xD086, 0x8458},   // PGA_TABLE_D65_DATA_49
+    {0xD088, 0x02D2},   // PGA_TABLE_D65_DATA_50
+    {0xD08A, 0x5DB1},   // PGA_TABLE_D65_DATA_51
+    {0xD08C, 0x6575},   // PGA_TABLE_D65_DATA_52
+    {0xD08E, 0x9C90},   // PGA_TABLE_D65_DATA_53
+    {0xD090, 0xBFB7},   // PGA_TABLE_D65_DATA_54
+    {0xD092, 0x2452},   // PGA_TABLE_D65_DATA_55
+    {0xD094, 0x1351},   // PGA_TABLE_D65_DATA_56
+    {0xD096, 0x07D6},   // PGA_TABLE_D65_DATA_57
+    {0xD098, 0xBDF4},   // PGA_TABLE_D65_DATA_58
+    {0xD09A, 0xFC97},   // PGA_TABLE_D65_DATA_59
+    {0xD09C, 0x030F},   // PGA_TABLE_D65_DATA_60
+    {0xD09E, 0xE90F},   // PGA_TABLE_D65_DATA_61
+    {0xD0A0, 0xA173},   // PGA_TABLE_D65_DATA_62
+    {0xD0A2, 0x3154},   // PGA_TABLE_D65_DATA_63
+    {0xD0A4, 0x42F6},   // PGA_TABLE_D65_DATA_64
+    {0xD0A6, 0x0B31},   // PGA_TABLE_D65_DATA_65
+    {0xD0A8, 0x01CF},   // PGA_TABLE_D65_DATA_66
+    {0xD0AA, 0x8F74},   // PGA_TABLE_D65_DATA_67
+    {0xD0AC, 0x39F2},   // PGA_TABLE_D65_DATA_68
+    {0xD0AE, 0x7A15},   // PGA_TABLE_D65_DATA_69
+    {0xD0B0, 0x994F},   // PGA_TABLE_D65_DATA_70
+    {0xD0B2, 0x1512},   // PGA_TABLE_D65_DATA_71
+    {0xD0B4, 0x5C94},   // PGA_TABLE_D65_DATA_72
+    {0xD0B6, 0x95F4},   // PGA_TABLE_D65_DATA_73
+    {0xD0B8, 0xF956},   // PGA_TABLE_D65_DATA_74
+    {0xD0BA, 0xFEAE},   // PGA_TABLE_D65_DATA_75
+    {0xD0BC, 0x9371},   // PGA_TABLE_D65_DATA_76
+    {0xD0BE, 0x6454},   // PGA_TABLE_D65_DATA_77
+    {0xD0C0, 0x35B4},   // PGA_TABLE_D65_DATA_78
+    {0xD0C2, 0x8A77},   // PGA_TABLE_D65_DATA_79
+    {0xD0C4, 0x40F0},   // PGA_TABLE_D65_DATA_80
+    {0xD0C6, 0x6A33},   // PGA_TABLE_D65_DATA_81
+    {0xD0C8, 0x8038},   // PGA_TABLE_D65_DATA_82
+    {0xD0CA, 0x8098},   // PGA_TABLE_D65_DATA_83
+    {0xD0CC, 0xA350},   // PGA_TABLE_D65_DATA_84
+    {0xD0CE, 0x0453},   // PGA_TABLE_D65_DATA_85
+    {0xD0D0, 0xAB14},   // PGA_TABLE_D65_DATA_86
+    {0xD0D2, 0xA418},   // PGA_TABLE_D65_DATA_87
+    {0xD0D4, 0xC2D5},   // PGA_TABLE_D65_DATA_88
+    {0xD0D6, 0x5198},   // PGA_TABLE_D65_DATA_89
+    {0xD0D8, 0x52D2},   // PGA_TABLE_D65_DATA_90
+    {0xD0DA, 0xF7D2},   // PGA_TABLE_D65_DATA_91
+    {0xD0DC, 0xC197},   // PGA_TABLE_D65_DATA_92
+    {0xD0DE, 0xA935},   // PGA_TABLE_D65_DATA_93
+    {0xD0E0, 0x1558},   // PGA_TABLE_D65_DATA_94
+    {0xD0E2, 0x0992},   // PGA_TABLE_D65_DATA_95
+    {0xD0E4, 0xC5B3},   // PGA_TABLE_D65_DATA_96
+    {0xD0E6, 0xEED7},   // PGA_TABLE_D65_DATA_97
+    {0xD0E8, 0x4BD4},   // PGA_TABLE_D65_DATA_98
+    {0xD0EA, 0xB096},   // PGA_TABLE_D65_DATA_99
+    {0xD0EE, 0x040C},   // PGA_TABLE_D65_CENTER_COLUMN
+    {0xD0EC, 0x025C},   // PGA_TABLE_D65_CENTER_ROW
+    {0xC9F2, 0x0011},   // CAM_PGA_PGA_CONTROL
+    {0xC9F2, 0x0011},   // CAM_PGA_PGA_CONTROL
+    {0xD018, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_CURRENT_ZONE
+    {0xD01E, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_LO_2
+    {0xD01D, 0x4B,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_LO_1
+    {0xD01C, 0xAA,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_LO_0
+    {0xD021, 0x50,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_HI_2
+    {0xD020, 0xAF,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_HI_1
+    {0xD01F, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_ZONE_HI_0
+    {0xD01B, 0x03,MSM_CAMERA_I2C_BYTE_DATA},     // PGA_NUMBER_ZONES
+    {0xC9F2, 0x0011},   // CAM_PGA_PGA_CONTROL
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xC894, 0x00FE},   // CAM_AWB_CCM_L_0
+    {0xC896, 0xFFA6},   // CAM_AWB_CCM_L_1
+    {0xC898, 0x005D},   // CAM_AWB_CCM_L_2
+    {0xC89A, 0x000A},   // CAM_AWB_CCM_L_3
+    {0xC89C, 0x00B5},   // CAM_AWB_CCM_L_4
+    {0xC89E, 0x0041},   // CAM_AWB_CCM_L_5
+    {0xC8A0, 0xFFF3},   // CAM_AWB_CCM_L_6
+    {0xC8A2, 0xFF9F},   // CAM_AWB_CCM_L_7
+    {0xC8A4, 0x016E},   // CAM_AWB_CCM_L_8
+    {0xC8CA, 0x0056},   // CAM_AWB_CCM_L_RG_GAIN
+    {0xC8CC, 0x01A8},   // CAM_AWB_CCM_L_BG_GAIN
+    {0xC8A6, 0x01C8},   // CAM_AWB_CCM_M_0
+    {0xC8A8, 0xFF01},   // CAM_AWB_CCM_M_1
+    {0xC8AA, 0x0036},   // CAM_AWB_CCM_M_2
+    {0xC8AC, 0xFFFE},   // CAM_AWB_CCM_M_3
+    {0xC8AE, 0x00F0},   // CAM_AWB_CCM_M_4
+    {0xC8B0, 0x0012},   // CAM_AWB_CCM_M_5
+    {0xC8B2, 0xFFD7},   // CAM_AWB_CCM_M_6
+    {0xC8B4, 0xFF23},   // CAM_AWB_CCM_M_7
+    {0xC8B6, 0x0206},   // CAM_AWB_CCM_M_8
+    {0xC8CE, 0x0087},   // CAM_AWB_CCM_M_RG_GAIN
+    {0xC8D0, 0x0157},   // CAM_AWB_CCM_M_BG_GAIN
+    {0xC8B8, 0x0182},   // CAM_AWB_CCM_R_0
+    {0xC8BA, 0xFF58},   // CAM_AWB_CCM_R_1
+    {0xC8BC, 0x0027},   // CAM_AWB_CCM_R_2
+    {0xC8BE, 0xFFF9},   // CAM_AWB_CCM_R_3
+    {0xC8C0, 0x00D3},   // CAM_AWB_CCM_R_4
+    {0xC8C2, 0x0034},   // CAM_AWB_CCM_R_5
+    {0xC8C4, 0xFFF4},   // CAM_AWB_CCM_R_6
+    {0xC8C6, 0xFF60},   // CAM_AWB_CCM_R_7
+    {0xC8C8, 0x01AC},   // CAM_AWB_CCM_R_8
+    {0xC8D2, 0x00BF},   // CAM_AWB_CCM_R_RG_GAIN
+    {0xC8D4, 0x00CD},   // CAM_AWB_CCM_R_BG_GAIN
+    {0xC8D6, 0x09C4},   // CAM_AWB_CCM_L_CTEMP
+    {0xC8D8, 0x0D67},   // CAM_AWB_CCM_M_CTEMP
+    {0xC8DA, 0x1964},   // CAM_AWB_CCM_R_CTEMP
+    {0xAC0A, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_R_SCENE_RATIO_LOWER
+    {0xAC0B, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_R_SCENE_RATIO_UPPER
+    {0xAC0C, 0x22,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_B_SCENE_RATIO_LOWER
+    {0xAC0D, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_B_SCENE_RATIO_UPPER
+    {0xC8EE, 0x09C4},   // CAM_AWB_COLOR_TEMPERATURE_MIN
+    {0xC8F0, 0x1964},   // CAM_AWB_COLOR_TEMPERATURE_MAX
+    {0xAC06, 0x63,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_R_RATIO_LOWER
+    {0xAC07, 0x65,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_R_RATIO_UPPER
+    {0xAC08, 0x63,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_B_RATIO_LOWER
+    {0xAC09, 0x65,MSM_CAMERA_I2C_BYTE_DATA},     // AWB_B_RATIO_UPPER
+    {0xC95C, 0x0020},   // CAM_STAT_AWB_X_SHIFT
+    {0xC95E, 0x000F},   // CAM_STAT_AWB_Y_SHIFT
+    {0xC8F4, 0x0080},   // CAM_AWB_AWB_XSCALE
+    {0xC8F6, 0x00AB},   // CAM_AWB_AWB_YSCALE
+    {0xC8F8, 0x0000},   // CAM_AWB_AWB_ROT_CENTER_X
+    {0xC8FA, 0x03D9},   // CAM_AWB_AWB_ROT_CENTER_Y
+    {0xC8FD, 0x2A,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_AWB_ROT_ANGLE_SIN
+    {0xC8FC, 0x30,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_AWB_ROT_ANGLE_COS
+    {0xC900, 0x0000},   // CAM_AWB_AWB_WEIGHTS_0
+    {0xC902, 0x0000},   // CAM_AWB_AWB_WEIGHTS_1
+    {0xC904, 0x0000},   // CAM_AWB_AWB_WEIGHTS_2
+    {0xC906, 0x0000},   // CAM_AWB_AWB_WEIGHTS_3
+    {0xC908, 0x0000},   // CAM_AWB_AWB_WEIGHTS_4
+    {0xC90A, 0x0111},   // CAM_AWB_AWB_WEIGHTS_5
+    {0xC90C, 0x1110},   // CAM_AWB_AWB_WEIGHTS_6
+    {0xC90E, 0x0000},   // CAM_AWB_AWB_WEIGHTS_7
+    {0xC910, 0x0000},   // CAM_AWB_AWB_WEIGHTS_8
+    {0xC912, 0x1122},   // CAM_AWB_AWB_WEIGHTS_9
+    {0xC914, 0x2222},   // CAM_AWB_AWB_WEIGHTS_10
+    {0xC916, 0x1100},   // CAM_AWB_AWB_WEIGHTS_11
+    {0xC918, 0x0112},   // CAM_AWB_AWB_WEIGHTS_12
+    {0xC91A, 0x2333},   // CAM_AWB_AWB_WEIGHTS_13
+    {0xC91C, 0x3333},   // CAM_AWB_AWB_WEIGHTS_14
+    {0xC91E, 0x3211},   // CAM_AWB_AWB_WEIGHTS_15
+    {0xC920, 0x1234},   // CAM_AWB_AWB_WEIGHTS_16
+    {0xC922, 0x4554},   // CAM_AWB_AWB_WEIGHTS_17
+    {0xC924, 0x3334},   // CAM_AWB_AWB_WEIGHTS_18
+    {0xC926, 0x4321},   // CAM_AWB_AWB_WEIGHTS_19
+    {0xC928, 0x1345},   // CAM_AWB_AWB_WEIGHTS_20
+    {0xC92A, 0x5554},   // CAM_AWB_AWB_WEIGHTS_21
+    {0xC92C, 0x3223},   // CAM_AWB_AWB_WEIGHTS_22
+    {0xC92E, 0x3332},   // CAM_AWB_AWB_WEIGHTS_23
+    {0xC930, 0x1234},   // CAM_AWB_AWB_WEIGHTS_24
+    {0xC932, 0x4443},   // CAM_AWB_AWB_WEIGHTS_25
+    {0xC934, 0x2111},   // CAM_AWB_AWB_WEIGHTS_26
+    {0xC936, 0x2221},   // CAM_AWB_AWB_WEIGHTS_27
+    {0xC938, 0x0112},   // CAM_AWB_AWB_WEIGHTS_28
+    {0xC93A, 0x2221},   // CAM_AWB_AWB_WEIGHTS_29
+    {0xC93C, 0x1100},   // CAM_AWB_AWB_WEIGHTS_30
+    {0xC93E, 0x0010},   // CAM_AWB_AWB_WEIGHTS_31
+    {0x33F4, 0x0517},   // KERNEL_CONFIG
+    {0x098E, 0x481A},   // LOGICAL_ADDRESS_ACCESS
+    {0xC81A, 0x003D},   // CAM_SENSOR_CFG_MIN_ANALOG_GAIN
+    {0xC81C, 0x03F8},   // CAM_SENSOR_CFG_MAX_ANALOG_GAIN
+    {0xC96C, 0x06,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_DEMOSAIC
+    {0xC971, 0x2B,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_DEMOSAIC
+    {0xC96E, 0x07,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_AP_NOISE_GAIN
+    {0xC96D, 0x18,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_AP_NOISE_KNEE
+    {0xC973, 0x1C,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_AP_NOISE_GAIN
+    {0xC972, 0x53,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_AP_NOISE_KNEE
+    {0xC96F, 0x0C,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_AP_GAIN_POS
+    {0xC970, 0x14,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_AP_GAIN_NEG
+    {0xC974, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_AP_GAIN_POS
+    {0xC975, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_AP_GAIN_NEG
+    {0xC976, 0x0E,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_GRB_APOS
+    {0xC977, 0x07,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_GRB_BPOS
+    {0xC978, 0x0A,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_GRB_ANEG
+    {0xC979, 0x32,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_GRB_BNEG
+    {0xC97A, 0xE3,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_GRB_APOS
+    {0xC97C, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_GRB_ANEG
+    {0xC97B, 0x9D,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_GRB_BPOS
+    {0xC97D, 0x64,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_GRB_BNEG
+    {0x33F4, 0x0515},   // KERNEL_CONFIG
+    {0xC9CE, 0x0040},   // CAM_LL_START_MAX_GAIN_METRIC
+    {0xC9D0, 0x0800},   // CAM_LL_MID_MAX_GAIN_METRIC
+    {0xC9D2, 0x1000},   // CAM_LL_STOP_MAX_GAIN_METRIC
+    {0xC984, 0x00E2},   // CAM_LL_START_CDC_HI_THR_COMB
+    {0xC988, 0x00D1},   // CAM_LL_START_CDC_HI_THR_SATUR
+    {0xC98C, 0x00DE},   // CAM_LL_MID_CDC_HI_THR_COMB
+    {0xC990, 0x00D4},   // CAM_LL_MID_CDC_HI_THR_SATUR
+    {0xC994, 0x0319},   // CAM_LL_STOP_CDC_HI_THR_COMB
+    {0xC998, 0x01AD},   // CAM_LL_STOP_CDC_HI_THR_SATUR
+    {0xC986, 0x00A0},   // CAM_LL_START_CDC_LO_THR_COMB
+    {0xC98A, 0x00B5},   // CAM_LL_START_CDC_LO_THR_SATUR
+    {0xC98E, 0x0127},   // CAM_LL_MID_CDC_LO_THR_COMB
+    {0xC992, 0x00DD},   // CAM_LL_MID_CDC_LO_THR_SATUR
+    {0xC996, 0x027D},   // CAM_LL_STOP_CDC_LO_THR_COMB
+    {0xC99A, 0x011B},   // CAM_LL_STOP_CDC_LO_THR_SATUR
+    {0xC97E, 0x000F},   // CAM_LL_START_DC_SINGLE_PIXEL_THR
+    {0xC980, 0x0005},   // CAM_LL_STOP_DC_SINGLE_PIXEL_THR
+    {0xC99C, 0x0009},   // CAM_LL_START_CDC_CC_NOISE_SLOPE
+    {0xC99E, 0x000E},   // CAM_LL_START_CDC_CC_NOISE_KNEE
+    {0xC9A0, 0x000B},   // CAM_LL_MID_CDC_CC_NOISE_SLOPE
+    {0xC9A2, 0x0025},   // CAM_LL_MID_CDC_CC_NOISE_KNEE
+    {0xC9A4, 0x0055},   // CAM_LL_STOP_CDC_CC_NOISE_SLOPE
+    {0xC9A6, 0x00FF},   // CAM_LL_STOP_CDC_CC_NOISE_KNEE
+    {0x33F4, 0x0D15},   // KERNEL_CONFIG
+    {0xC9A8, 0x0040},   // CAM_LL_ADACD_LUT_GAIN_0
+    {0xC9AE, 0x07,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_LUT_SIGMA_0
+    {0xC9B2, 0x0076},   // CAM_LL_ADACD_LUT_K_0
+    {0xC9AA, 0x0200},   // CAM_LL_ADACD_LUT_GAIN_1
+    {0xC9AF, 0x0F,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_LUT_SIGMA_1
+    {0xC9B4, 0x0064},   // CAM_LL_ADACD_LUT_K_1
+    {0xC9AC, 0x0400},   // CAM_LL_ADACD_LUT_GAIN_2
+    {0xC9B0, 0x17,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_LUT_SIGMA_2
+    {0xC9B6, 0x0061},   // CAM_LL_ADACD_LUT_K_2
+    {0xBC02, 0x001B},   // LL_MODE
+    {0xC9BE, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_LL_MODE_EN
+    {0x3398, 0x0030},   // ADACD_LOWLIGHT_CONTROL
+    {0x3398, 0x0030},   // ADACD_LOWLIGHT_CONTROL
+    {0x3398, 0x0030},   // ADACD_LOWLIGHT_CONTROL
+    {0xC9B1, 0x01,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_PATCH
+    {0xC9B8, 0x021F},   // CAM_LL_ADACD_TRT
+    {0xC9AE, 0x0A,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_LUT_SIGMA_0
+    {0xC9B2, 0x00B1},   // CAM_LL_ADACD_LUT_K_0
+    {0xC9AF, 0x16,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_LUT_SIGMA_1
+    {0xC9B4, 0x0096},   // CAM_LL_ADACD_LUT_K_1
+    {0xC9B0, 0x22,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_ADACD_LUT_SIGMA_2
+    {0xC9B6, 0x0092},   // CAM_LL_ADACD_LUT_K_2
+    {0x326E, 0x0086},   // LOW_PASS_YUV_FILTER
+    {0x3270, 0x0FAA},   // THRESHOLD_FOR_Y_FILTER_R_CHANNEL
+    {0x3272, 0x0FE4},   // THRESHOLD_FOR_Y_FILTER_G_CHANNEL
+    {0xC9CA, 0x0040},   // CAM_LL_START_GAIN_METRIC
+    {0xC9CC, 0x1000},   // CAM_LL_STOP_GAIN_METRIC
+    {0xC9CE, 0x0040},   // CAM_LL_START_MAX_GAIN_METRIC
+    {0xC9D2, 0x1000},   // CAM_LL_STOP_MAX_GAIN_METRIC
+    {0x098E, 0xC944},   // LOGICAL_ADDRESS_ACCESS
+    {0xC944, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_R_L
+    {0xC945, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_G_L
+    {0xC946, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_B_L
+    {0xC947, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_R_R
+    {0xC948, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_G_R
+    {0xC949, 0x80,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_AWB_K_B_R
+    {0xC962, 0x0032},   // CAM_LL_START_BRIGHTNESS
+    {0xC964, 0x0BB8},   // CAM_LL_STOP_BRIGHTNESS
+    {0xC88A, 0x0180},   // CAM_AET_AE_MAX_VIRT_DGAIN
+    {0xC87E, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     //0x3D  // CAM_AET_TARGET_AVERAGE_LUMA
+    {0xC87F, 0x3B,MSM_CAMERA_I2C_BYTE_DATA},     //0x3D  // CAM_AET_TARGET_AVERAGE_LUMA_DARK
+    /* add on 0703 for AE stability */
+    {0xA808, 0x0019},   // 25% 0x0032   // AE_TRACK_GATE -- set to 50% of stability
+    //
+    {0x32B2, 0x2518},   // DKDELTA_CCM_CTL
+    {0xB402, 0x0002},   // CCM_MODE
+    {0xC968, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_DESATURATION
+    {0xC969, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_END_DESATURATION
+    {0xC96A, 0x18,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_DARK_DELTA_CCM_THR
+    {0xC96B, 0x0F,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_DARK_DELTA_CCM_THR
+    {0xB42A, 0x05,MSM_CAMERA_I2C_BYTE_DATA},     // CCM_DELTA_GAIN
+    {0xC8DC, 0x0100},   // CAM_AWB_LL_CCM_0
+    {0xC8DE, 0x0000},   // CAM_AWB_LL_CCM_1
+    {0xC8E0, 0x0000},   // CAM_AWB_LL_CCM_2
+    {0xC8E2, 0x0000},   // CAM_AWB_LL_CCM_3
+    {0xC8E4, 0x0100},   // CAM_AWB_LL_CCM_4
+    {0xC8E6, 0x0000},   // CAM_AWB_LL_CCM_5
+    {0xC8E8, 0x0000},   // CAM_AWB_LL_CCM_6
+    {0xC8EA, 0x0000},   // CAM_AWB_LL_CCM_7
+    {0xC8EC, 0x0100},   // CAM_AWB_LL_CCM_8
+    {0x098E, 0x4A1C},   // LOGICAL_ADDRESS_ACCESS
+    {0xCA1C, 0x8040},   // CAM_PORT_OUTPUT_CONTROL
+    {0x001E, 0x0777},   // PAD_SLEW
+    {0xCA1C, 0x8041},   // CAM_PORT_OUTPUT_CONTROL
+    {0xC888, 0x0080},   // CAM_AET_AE_MIN_VIRT_DGAIN
+    {0xC88A, 0x0180},   // CAM_AET_AE_MAX_VIRT_DGAIN
+    {0xC882, 0x000A},   // CAM_AET_BLACK_CLIPPING_TARGET
+    {0xC81A, 0x0040},   // CAM_SENSOR_CFG_MIN_ANALOG_GAIN
+    {0xC81C, 0x01F8},   // CAM_SENSOR_CFG_MAX_ANALOG_GAIN
+    {0xC9EF, 0x52,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_SEQ_DARK_COLOR_KILL
+    {0xC9F0, 0x52,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_SEQ_BRIGHT_COLOR_KILL
+    {0xC966, 0xFF,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_SATURATION
+    {0x098E, 0xDC00},   // LOGICAL_ADDRESS_ACCESS
+    {0xDC00, 0x28,MSM_CAMERA_I2C_BYTE_DATA},     // SYSMGR_NEXT_STATE
+    {0x0080, 0x8002},   // COMMAND_REGISTER
+    //DELAY=50
     {0xffff, 50},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6000},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6000},   // PHYSICAL_ADDRESS_ACCESS
     {0xE000, 0xC0F1},
     {0xE002, 0x0C3E},
     {0xE004, 0x08C0},
@@ -1909,19 +1921,19 @@ uint8_t as0260_burst_0xe978[] ={
     {0xE062, 0xDA84},
     {0xE064, 0xFFFF},
     {0xE066, 0xE000},
-    {0x098E, 0x0000},   
-    {0xE000, 0x0044},   
-    {0xE002, 0x0005},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0044},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0005},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6068},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6068},   // PHYSICAL_ADDRESS_ACCESS
     {0xE068, 0xC0F1},
     {0xE06A, 0xC5E1},
     {0xE06C, 0x75CF},
@@ -2562,19 +2574,19 @@ uint8_t as0260_burst_0xe978[] ={
     {0xE562, 0xDE24},
     {0xE564, 0xFFFF},
     {0xE566, 0xE3CC},
-    {0x098E, 0x0000},   
-    {0xE000, 0x0510},   
-    {0xE002, 0x0105},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0510},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0105},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6568},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6568},   // PHYSICAL_ADDRESS_ACCESS
     {0xE568, 0xC0F1},
     {0xE56A, 0xC5E1},
     {0xE56C, 0x75CF},
@@ -2633,19 +2645,19 @@ uint8_t as0260_burst_0xe978[] ={
     {0xE5D6, 0xDCA8},
     {0xE5D8, 0xFFFF},
     {0xE5DA, 0xE568},
-    {0x098E, 0x0000},   
-    {0xE000, 0x05B8},   
-    {0xE002, 0x0205},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x05B8},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0205},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0982, 0x0001},   
-    {0x098A, 0x65DC},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x65DC},   // PHYSICAL_ADDRESS_ACCESS
     {0xE5DC, 0xC0F1},
     {0xE5DE, 0x0E62},
     {0xE5E0, 0x0880},
@@ -2720,19 +2732,19 @@ uint8_t as0260_burst_0xe978[] ={
     {0xE66A, 0xDD18},
     {0xE66C, 0xFFFF},
     {0xE66E, 0xE5DC},
-    {0x098E, 0x0000},   
-    {0xE000, 0x064C},   
-    {0xE002, 0x0305},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x064C},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0305},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6670},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6670},   // PHYSICAL_ADDRESS_ACCESS
     {0xE670, 0xC0F1},
     {0xE672, 0x0DCE},
     {0xE674, 0x08A0},
@@ -2885,19 +2897,19 @@ uint8_t as0260_burst_0xe978[] ={
     {0xE79A, 0xDD68},
     {0xE79C, 0xFFFF},
     {0xE79E, 0xE670},
-    {0x098E, 0x0000},   
-    {0xE000, 0x0778},   
-    {0xE002, 0x0405},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0778},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0405},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff, 10},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6854},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6854},   // PHYSICAL_ADDRESS_ACCESS
     {0xE854, 0xC0F1},
     {0xE856, 0x0BEE},
     {0xE858, 0x0880},
@@ -2964,19 +2976,19 @@ uint8_t as0260_burst_0xe978[] ={
     {0xE8D2, 0xDB2C},
     {0xE8D4, 0xFFFF},
     {0xE8D6, 0xE890},
-    {0x098E, 0x0000},   
-    {0xE000, 0x08B4},   
-    {0xE002, 0x0605},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x08B4},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0605},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff,10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff,10},
-    {0x0982, 0x0001},   
-    {0x098A, 0x68D8},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x68D8},   // PHYSICAL_ADDRESS_ACCESS
     {0xE8D8, 0xC0F1},
     {0xE8DA, 0x0911},
     {0xE8DC, 0x0450},
@@ -3023,19 +3035,19 @@ uint8_t as0260_burst_0xe978[] ={
     {0xE92E, 0xDBF8},
     {0xE930, 0xFFFF},
     {0xE932, 0xE8D8},
-    {0x098E, 0x0000},   
-    {0xE000, 0x0910},   
-    {0xE002, 0x0705},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0910},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0705},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff,10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff,10},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6934},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6934},   // PHYSICAL_ADDRESS_ACCESS
     {0xE934, 0xC0F1},
     {0xE936, 0x71CF},
     {0xE938, 0x0000},
@@ -3070,19 +3082,19 @@ uint8_t as0260_burst_0xe978[] ={
     {0xE972, 0xDD94},
     {0xE974, 0xFFFF},
     {0xE976, 0xE934},
-    {0x098E, 0x0000},   
-    {0xE000, 0x094C},   
-    {0xE002, 0x0805},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x094C},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0805},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff,10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff,10},
-    {0x0982, 0x0001},   
-    {0x098A, 0x6978},   
+    {0x0982, 0x0001},   // ACCESS_CTL_STAT
+    {0x098A, 0x6978},   // PHYSICAL_ADDRESS_ACCESS
     {0xE978, 0xC0F1},
     {0xE97A, 0x0CBA},
     {0xE97C, 0x01E0},
@@ -3185,28 +3197,28 @@ uint8_t as0260_burst_0xe978[] ={
     {0xEA3E, 0xD800},
     {0xEA40, 0xC0D1},
     {0xEA42, 0x7EE0},
-    {0x098E, 0x0000},   
-    {0xE000, 0x0A20},   
-    {0xE002, 0x0905},   
-    {0xE004, 0x5100},   
-    {0xE006, 0x0000},   
-    {0x0080, 0xFFF0},   
-    
+    {0x098E, 0x0000},   // LOGICAL_ADDRESS_ACCESS
+    {0xE000, 0x0A20},   // PATCHLDR_LOADER_ADDRESS
+    {0xE002, 0x0905},   // PATCHLDR_PATCH_ID
+    {0xE004, 0x5100},   // PATCHLDR_FIRMWARE_ID
+    {0xE006, 0x0000},   // PATCHLDR_FIRMWARE_ID
+    {0x0080, 0xFFF0},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff,10},
-    {0x0080, 0xFFF1},   
-    
+    {0x0080, 0xFFF1},   // COMMAND_REGISTER
+    //DELAY=10
     {0xffff,10},
-    {0xC960, 0x0003},   
-    {0xBC08, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C6, 0xC0,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C7, 0x60,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C8, 0x14,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C9, 0x0C,MSM_CAMERA_I2C_BYTE_DATA}, 
-    {0xE400, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xE401, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     
-    {0xC9C0, 0x0012},   
-    {0xC9C2, 0x0133},       
-    {0xBC02, 0x001B},   
+    {0xC960, 0x0003},   // CAM_LL_LLMODE
+    {0xBC08, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // LL_GAMMA_SELECT
+    {0xC9C6, 0xC0,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_CONTRAST_GRADIENT
+    {0xC9C7, 0x60,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_STOP_CONTRAST_GRADIENT
+    {0xC9C8, 0x14,MSM_CAMERA_I2C_BYTE_DATA},     // CAM_LL_START_CONTRAST_LUMA_PERCENTAGE
+    {0xC9C9, 0x0C,MSM_CAMERA_I2C_BYTE_DATA}, //0x12  // CAM_LL_STOP_CONTRAST_LUMA_PERCENTAGE -- set to 12
+    {0xE400, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // PATCHVARS_START_ORIGIN_GRADIENT
+    {0xE401, 0x00,MSM_CAMERA_I2C_BYTE_DATA},     // PATCHVARS_STOP_ORIGIN_GRADIENT
+    {0xC9C0, 0x0012},   // CAM_LL_START_CONTRAST_BM
+    {0xC9C2, 0x0133},       //0x00B3    // CAM_LL_STOP_CONTRAST_BM -- for meet AE spec at LV6 9cd*m^2 -- 0703
+    {0xBC02, 0x001B},   // LL_MODE
 
 
 };
@@ -3216,18 +3228,18 @@ static struct msm_camera_i2c_reg_conf as0260_recommend_settings_yushanii[] = {
 
 static struct msm_sensor_output_info_t as0260_dimensions[] = {
 	{
-		
-		.x_output = 1928,
-		.y_output = 1088,
+		//USE_MCLK_780MHZ
+		.x_output = 1928,//0x280,//0x780,//0x0788, //1928
+		.y_output = 1088,//0x1E0,//0x438,//0x0440, //1089
 		.line_length_pclk = 0x125C,
 		.frame_length_lines = 0x0499,
-		.vt_pixel_clk = 109714286,
-		.op_pixel_clk = 96000000,
+		.vt_pixel_clk = 109714286,//111428570,//109714286,
+		.op_pixel_clk = 96000000,//78000000,//76800000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
 		.y_addr_start = 0,
-		.x_addr_end = 1928-1,
-		.y_addr_end = 1088-1,
+		.x_addr_end = 1928-1,//0x280,//0x780,
+		.y_addr_end = 1088-1,//0x1E0,//0x438,
 		.x_even_inc = 1,
 		.x_odd_inc = 1,
 		.y_even_inc = 1,
@@ -3236,18 +3248,18 @@ static struct msm_sensor_output_info_t as0260_dimensions[] = {
 		.is_hdr = 0,
 	},
 	{
-		
-		.x_output = 1928,
-		.y_output = 1088,
+		//USE_MCLK_780MHZ
+		.x_output = 1928,//0x280,//0x0780,
+		.y_output = 1088,//0x1E0,//0x0438,
 		.line_length_pclk = 0x125C,
 		.frame_length_lines = 0x0499,
-		.vt_pixel_clk = 109714286,
-		.op_pixel_clk = 96000000,
+		.vt_pixel_clk = 109714286,//111428570,//109714286,
+		.op_pixel_clk = 96000000,//76800000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
 		.y_addr_start = 0,
-		.x_addr_end = 1928-1,
-		.y_addr_end = 1088-1,
+		.x_addr_end = 1928-1,//0x280,//0x0780,
+		.y_addr_end = 1088-1,//0x1E0,//0x0438,
 		.x_even_inc = 1,
 		.x_odd_inc = 1,
 		.y_even_inc = 1,
@@ -3265,16 +3277,16 @@ static struct msm_sensor_output_info_t as0260_dimensions_yushanii[] = {
 };
 
 static struct msm_sensor_output_reg_addr_t as0260_reg_addr = {
-	.x_output = 0xC86C,
-	.y_output = 0xC86E,
-	.line_length_pclk = 0xC814,
-	.frame_length_lines = 0xC812,
+	.x_output = 0xC86C,//0x4304,//0xC86C,
+	.y_output = 0xC86E,//0x4306,//0xC86E,
+	.line_length_pclk = 0xC814,//0x300C,//0xC814,
+	.frame_length_lines = 0xC812,//0x300A,//0xC812,
 };
 static struct msm_sensor_exp_gain_info_t as0260_exp_gain_info = {
-	.coarse_int_time_addr = 0x3012,
-	.global_gain_addr = 0x305E,
+	.coarse_int_time_addr = 0x3012,//the same as AR0260
+	.global_gain_addr = 0x305E,//the same as AR0260
 	.vert_offset = 4,
-	.min_vert = 4,  
+	.min_vert = 4, /* min coarse integration time */ /* HTC Angie 20111019 - Fix FPS */
 };
 
 
@@ -3300,19 +3312,19 @@ static struct msm_sensor_exp_gain_info_t as0260_exp_gain_info = {
 
 static struct v4l2_subdev_info as0260_subdev_info[] = {
 	{
-	.code   = V4L2_MBUS_FMT_YUYV8_2X8,
+	.code   = V4L2_MBUS_FMT_YUYV8_2X8,//V4L2_MBUS_FMT_SBGGR10_1X10,//,//,
 	.colorspace = V4L2_COLORSPACE_JPEG,
 	.fmt    = 1,
 	.order    = 0,
 	},
-	
+	/* more can be supported, to be added later */
 };
 
 static struct msm_camera_i2c_conf_array as0260_init_conf[] = {
-	
-	
+	//{&as0260_recommend_settings[0],
+	//ARRAY_SIZE(as0260_recommend_settings), 0, MSM_CAMERA_I2C_WORD_DATA}
 
-	
+	// as0260_recommend_settings_brust_all
 	{&as0260_recommend_settings_brust_all[0],
 	ARRAY_SIZE(as0260_recommend_settings_brust_all), 0, MSM_CAMERA_I2C_WORD_DATA}
 };
@@ -3323,20 +3335,26 @@ static struct msm_camera_i2c_conf_array as0260_init_conf_yushanii[] = {
 };
 
 static struct msm_camera_i2c_conf_array as0260_confs[] = {
-	
-	
+	//{&as0260_snap_settings[0],
+	//ARRAY_SIZE(as0260_snap_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
 
 	{&as0260_snap_settings[0],
 	ARRAY_SIZE(as0260_prev_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
 	{&as0260_prev_settings[0],
 	ARRAY_SIZE(as0260_prev_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
+    /*
+    {&as0260_prev_settings[0],
+	ARRAY_SIZE(as0260_prev_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
+	{&as0260_prev_settings[0],
+	ARRAY_SIZE(as0260_prev_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
+    */
 };
 
 
 
 
 static struct msm_camera_csid_vc_cfg as0260_cid_cfg[] = {
-	{0, CSI_YUV422_8, CSI_DECODE_8BIT},
+	{0, CSI_YUV422_8, CSI_DECODE_8BIT},//{0, CSI_YUV422_8, CSI_DECODE_10BIT},//{0, CSI_RAW10, CSI_DECODE_10BIT},
 	{1, CSI_EMBED_DATA, CSI_DECODE_8BIT},
 };
 
@@ -3421,18 +3439,18 @@ static struct msm_camera_i2c_client as0260_sensor_i2c_client = {
 	.addr_type = MSM_CAMERA_I2C_WORD_ADDR,
 };
 
-#define CAM2_RSTz       (2)
+#define CAM2_RSTz       (2)//GPIO(2)
 #define CAM_PIN_GPIO_CAM2_RSTz	CAM2_RSTz
 
-int32_t as0260_power_up(struct msm_sensor_ctrl_t *s_ctrl)
+int32_t as0260_power_up(struct msm_sensor_ctrl_t *s_ctrl)//(const struct msm_camera_sensor_info *sdata)
 {
 	int rc;
-	struct sensor_cfg_data cdata;  
+	struct sensor_cfg_data cdata;  //CC140211
 	struct msm_camera_sensor_info *sdata = NULL;
 	pr_info("%s\n", __func__);
 
 
-#if 1		
+#if 1	/* reset pin */	// FIXME: to make sure the reset pin pull low before power up
 		rc = gpio_request(CAM_PIN_GPIO_CAM2_RSTz, "as0260");
 		if (rc < 0)
 			pr_err("GPIO(%d) request failed", CAM_PIN_GPIO_CAM2_RSTz);
@@ -3440,7 +3458,7 @@ int32_t as0260_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 			gpio_direction_output(CAM_PIN_GPIO_CAM2_RSTz, 0);
 			gpio_free(CAM_PIN_GPIO_CAM2_RSTz);
 		}
-		mdelay(10); 
+		mdelay(10); //temp timing setting
 #endif
 
 	if (s_ctrl && s_ctrl->sensordata)
@@ -3470,11 +3488,11 @@ int32_t as0260_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 
 #ifdef CONFIG_RAWCHIPII
 	Ilp0100_enableIlp0100SensorClock(SENSOR_1);
-	mdelay(35);	
+	mdelay(35);	//temp timing setting
 #endif
 
-#if 0	
-	mdelay(10);	
+#if 0	/* reset pin */
+	mdelay(10);	//temp timing setting
 	rc = gpio_request(CAM_PIN_GPIO_CAM2_RSTz, "as0260");
 	if (rc < 0)
 		pr_err("GPIO(%d) request failed", CAM_PIN_GPIO_CAM2_RSTz);
@@ -3483,7 +3501,7 @@ int32_t as0260_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 		gpio_free(CAM_PIN_GPIO_CAM2_RSTz);
 	}
 
-	mdelay(50);	
+	mdelay(50);	//temp timing setting
 #else
 
 	rc = gpio_request(CAM_PIN_GPIO_CAM2_RSTz, "as0260");
@@ -3491,16 +3509,17 @@ int32_t as0260_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	if (rc < 0) {
 		pr_err("GPIO(%d) request failed", CAM_PIN_GPIO_CAM2_RSTz);
 	}
-	mdelay(1); 
+	mdelay(1); // 50 ~ 200 ms
 	gpio_direction_output(CAM_PIN_GPIO_CAM2_RSTz, 1);
-	mdelay(1); 
+	mdelay(1); // 50 ~ 200 ms
 	gpio_direction_output(CAM_PIN_GPIO_CAM2_RSTz, 0);
 
 	gpio_free(CAM_PIN_GPIO_CAM2_RSTz);
-	mdelay(25); 
+	mdelay(25); // for readid delay
 #endif
 
 	as0260_sensor_open_init(sdata);
+//CC140211
 	if (s_ctrl->func_tbl->sensor_i2c_read_fuseid == NULL) {
 		rc = -EFAULT;
 		return rc;
@@ -3509,12 +3528,13 @@ int32_t as0260_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	if (rc < 0) {
 		return rc;
 	}
+//CC140211~
 	pr_info("%s end\n", __func__);
 
-	return 0;  
+	return 0;  /*msm_sensor_power_up(sdata)*/
 }
 
-int32_t as0260_power_down(struct msm_sensor_ctrl_t *s_ctrl)
+int32_t as0260_power_down(struct msm_sensor_ctrl_t *s_ctrl)//(const struct msm_camera_sensor_info *sdata)
 {
 	int rc;
 	struct msm_camera_sensor_info *sdata = NULL;
@@ -3532,7 +3552,7 @@ int32_t as0260_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		return -EIO;
 	}
 
-#if 0	
+#if 0	/* reset pin */
 	rc = gpio_request(CAM_PIN_GPIO_CAM2_RSTz, "as0260");
 	if (rc < 0)
 		pr_err("GPIO(%d) request failed", CAM_PIN_GPIO_CAM2_RSTz);
@@ -3540,7 +3560,7 @@ int32_t as0260_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		gpio_direction_output(CAM_PIN_GPIO_CAM2_RSTz, 0);
 		gpio_free(CAM_PIN_GPIO_CAM2_RSTz);
 	}
-	mdelay(10); 
+	mdelay(10); //temp timing setting
 #endif
 
 	if (!sdata->use_rawchip && (sdata->htc_image != HTC_CAMERA_IMAGE_YUSHANII_BOARD)) {
@@ -3551,15 +3571,15 @@ int32_t as0260_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("%s failed to disable power\n", __func__);
 		return rc;
 	}
-	return 0;  
+	return 0;  /*msm_sensor_power_down(sdata);*/
 }
 
 int32_t as0260_i2c_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
 	int	rc = 0;
-	
-	
+	/* Retry mechanism for sensor probe fail. Disable by default in CC stage */
+	/* int max_probe_count = 5; */
 	int max_probe_count = 1;
 	int probe_count = 0;
 
@@ -3570,7 +3590,7 @@ sensor_probe_retry:
 	if(rc >= 0)
 		as0260_sysfs_init();
 	else {
-		
+		/* Retry mechanism for sensor probe fail. Disable by default in CC stage */
 		probe_count++;
 		if(probe_count < max_probe_count) {
 			pr_info("%s  apply sensor probe retry mechanism , probe_count=%d\n", __func__, probe_count);
@@ -3589,7 +3609,7 @@ static const struct i2c_device_id as0260_i2c_id[] = {
 
 static struct i2c_driver as0260_i2c_driver = {
 	.id_table = as0260_i2c_id,
-	.probe  = as0260_i2c_probe,
+	.probe  = as0260_i2c_probe,//msm_sensor_i2c_probe,
 	.driver = {
 		.name = SENSOR_NAME,
 	},
@@ -3601,7 +3621,7 @@ static int as0260_read_fuseid(struct sensor_cfg_data *cdata,
 	int32_t rc = 0;
 	int i;
 	uint16_t read_data = 0;
-	uint16_t id_addr[2] = {0x31F6,0x31F4};
+	uint16_t id_addr[2] = {0x31F6,0x31F4};//0x31F4~0x31FA.//Series
 	static uint16_t id_data[2] = {0,0};
 	static int first=true;
 
@@ -3612,7 +3632,7 @@ static int as0260_read_fuseid(struct sensor_cfg_data *cdata,
 		{0x304A, 0x0200,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_WRITE},
 		{0x304A, 0x0210,MSM_CAMERA_I2C_WORD_DATA,MSM_CAMERA_I2C_CMD_WRITE},
 
-		
+		//{0x304A, 0x60,MSM_CAMERA_I2C_SET_WORD_MASK,MSM_CAMERA_I2C_CMD_POLL},
 
 	};
 	pr_info("%s called\n", __func__);
@@ -3663,13 +3683,17 @@ static int as0260_read_fuseid(struct sensor_cfg_data *cdata,
 
 }
 
+/* HTC_END*/
 
+// HTC_START pg 20121002 aptina don't need frame lenfth lines
 static int32_t aptina_write_exp_gain(struct msm_sensor_ctrl_t *s_ctrl,
-		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line) 
+		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line) /* HTC Angie 20111019 - Fix FPS */
 {
 	CDBG("%s: called\n", __func__);
+/* HTC_START ben 20120229 */
 	if(line > s_ctrl->sensor_exp_gain_info->sensor_max_linecount)
 		line = s_ctrl->sensor_exp_gain_info->sensor_max_linecount;
+/* HTC_END */
 
 	s_ctrl->func_tbl->sensor_group_hold_on(s_ctrl);
 
@@ -3683,6 +3707,7 @@ static int32_t aptina_write_exp_gain(struct msm_sensor_ctrl_t *s_ctrl,
 	s_ctrl->func_tbl->sensor_group_hold_off(s_ctrl);
 	return 0;
 }
+// HTC_END pg 20121002 aptina don't need frame lenfth lines
 
 static int __init msm_sensor_init_module(void)
 {
@@ -3704,6 +3729,7 @@ static struct v4l2_subdev_ops as0260_subdev_ops = {
 	.video  = &as0260_subdev_video_ops,
 };
 
+//Hank Add 20130521 Start
 #if 0
 static struct i2c_client *as0260_client;
 
@@ -3720,7 +3746,7 @@ static int i2c_transfer_retry(struct i2c_adapter *adap,
 			int len)
 {
 	int i2c_retry = 0;
-	int ns; 
+	int ns; /* number sent */
 
 	while (i2c_retry++ < MAX_I2C_RETRIES) {
 		ns = i2c_transfer(adap, msgs, len);
@@ -3876,7 +3902,7 @@ static int as0260_set_effect(int effect)
 
 static int as0260_set_FPS(struct fps_cfg *fps)
 {
-	
+	// Avoid duplicate action to set FPS //
 	static struct fps_cfg pre_fps_cfg = {
 		.fps_div = -1,
 	};
@@ -3898,19 +3924,19 @@ static int as0260_set_FPS(struct fps_cfg *fps)
 
 
 	if (fps->fps_div == 0) {
-		
-		
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_3TC_PCFG_usMaxFrTimeMsecMult10, 0x0535);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_3TC_PCFG_usMinFrTimeMsecMult10, 0x0168);
 	}	else if (fps->fps_div == 15) {
-		
-		
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_3TC_PCFG_usMaxFrTimeMsecMult10, 0x029A);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_3TC_PCFG_usMinFrTimeMsecMult10, 0x029A);
 	}	else if (fps->fps_div == 10) {
-		
-		
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_3TC_PCFG_usMaxFrTimeMsecMult10, 0x03E8);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_3TC_PCFG_usMinFrTimeMsecMult10, 0x03E8);
 	}	else if (fps->fps_div == 1015) {
-		
-		
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_3TC_PCFG_usMaxFrTimeMsecMult10, 0x03E8);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_3TC_PCFG_usMinFrTimeMsecMult10, 0x029A);
 	}
-	
+	//s5k6aafx_i2c_write(s5k6aafx_client->addr, S5K6AAFX_REG_TC_GP_PrevConfigChanged, 0x0001);
 
 	return 0;
 }
@@ -3924,44 +3950,44 @@ static int as0260_set_wb(enum wb_mode wb_value)
 		return 0;
 
 	switch (wb_value) {
-	case CAMERA_AWB_AUTO: 
-		
+	case CAMERA_AWB_AUTO: //auto//
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x0400, 0x007F);
 		break;
-	case CAMERA_AWB_CLOUDY: 
-		
-		
-		
-		
-		
-		
-		
+	case CAMERA_AWB_CLOUDY: //cloudy//
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x0400, 0x0077);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D0, 0x0185);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D2, 0x0001);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D4, 0x0100);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D6, 0x0001);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D8, 0x0150);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03DA, 0x0001);
 		break;
-	case CAMERA_AWB_INDOOR_HOME: 
-		
-		
-		
-		
-		
-		
-		
+	case CAMERA_AWB_INDOOR_HOME: //Fluorescent//
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x0400, 0x0077);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D0, 0x0110);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D2, 0x0001);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D4, 0x0100);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D6, 0x0001);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D8, 0x0235);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03DA, 0x0001);
 		break;
-	case CAMERA_AWB_INDOOR_OFFICE: 
-		
-		
-		
-		
-		
-		
-		
+	case CAMERA_AWB_INDOOR_OFFICE: //Incandescent//
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x0400, 0x0077);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D0, 0x0100);//100 130 150 0x01B3 R gain//
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D2, 0x0001);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D4, 0x0100);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D6, 0x0001);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D8, 0x0238);//210 180 0x0150 B gain//
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03DA, 0x0001);
 		break;
-	case CAMERA_AWB_SUNNY: 
-		
-		
-		
-		
-		
-		
-		
+	case CAMERA_AWB_SUNNY: //outdoor//
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x0400, 0x0077);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D0, 0x0175);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D2, 0x0001);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D4, 0x0100);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D6, 0x0001);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03D8, 0x0160);
+		//s5k6aafx_i2c_write(s5k6aafx_client->addr, 0x03DA, 0x0001);
 		break;
 	default:
 		break;
@@ -4008,16 +4034,16 @@ static int as0260_set_front_camera_mode(enum frontcam_t frontcam_value)
 
 	switch (frontcam_value) {
 	case CAMERA_MIRROR:
-		
+		//mirror and flip//
 
 		break;
 	case CAMERA_REVERSE:
-		
+		//reverse mode//
 
 		break;
 
 	case CAMERA_PORTRAIT_REVERSE:
-		
+		//portrait reverse mode//
 
 		break;
 
@@ -4042,16 +4068,16 @@ static int as0260_set_qtr_size_mode(enum qtr_size_mode qtr_size_mode_value)
 
 	qtr_size_mode = qtr_size_mode_value;
 
-	
+	// separate mipi/parallel //
 	if (g_csi_if) {
 		switch (qtr_size_mode_value) {
 		case NORMAL_QTR_SIZE_MODE:
 			pr_info("%s NORMAL_QTR_SIZE_MODE\n", __func__);
 			break;
 
-		case LARGER_QTR_SIZE_MODE:
+		case LARGER_QTR_SIZE_MODE://HD//
 			pr_info("%s LARGER_QTR_SIZE_MODE\n", __func__);
-			
+			//mdelay(200); //mark for moving it to set preview mode
 			break;
 		default:
 			break;
@@ -4077,6 +4103,75 @@ static int as0260_set_qtr_size_mode(enum qtr_size_mode qtr_size_mode_value)
 
 #endif
 
+/*
+int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
+{
+	struct sensor_cfg_data cfg_data;
+	long rc = 0;
+	as0260_i2c_write(as0260_client->addr,0x098E ,0x4C12);
+	if (copy_from_user(&cfg_data,
+			   (void *)argp, sizeof(struct sensor_cfg_data)))
+		return -EFAULT;
+
+	pr_info("as0260_ioctl, cfgtype = %d\n", cfg_data.cfgtype);
+
+	switch (cfg_data.cfgtype) {
+	case CFG_GET_OUTPUT_INFO:
+		rc = as0260_get_output_info(&cfg_data.cfg.output_info);
+		if (copy_to_user((void *)argp,
+			&cfg_data,
+			sizeof(struct sensor_cfg_data)))
+			rc = -EFAULT;
+		break;
+	case CFG_SET_MODE:
+		rc = as0260_set_sensor_mode(s_ctrl, cfg_data.mode, cfg_data.cfg.qtr_size_mode_value);
+		break;
+	case CFG_SET_EFFECT:
+		rc = as0260_set_effect(cfg_data.cfg.effect);
+		break;
+	case CFG_SET_FPS:
+		rc = as0260_set_FPS(&(cfg_data.cfg.fps));
+		break;
+	case CFG_SET_ANTIBANDING:
+		rc = as0260_set_antibanding(cfg_data.cfg.antibanding_value);
+		break;
+	case CFG_SET_BRIGHTNESS:
+		rc = as0260_set_brightness(cfg_data.cfg.brightness_value);
+		break;
+	case CFG_SET_WB:
+		rc = as0260_set_wb(cfg_data.cfg.wb_value);
+		break;
+	case CFG_SET_SHARPNESS:
+		rc = as0260_set_sharpness(cfg_data.cfg.sharpness_value);
+		break;
+	case CFG_SET_SATURATION:
+		rc = as0260_set_saturation(cfg_data.cfg.saturation_value);
+		break;
+	case CFG_SET_CONTRAST:
+		rc = as0260_set_contrast(cfg_data.cfg.contrast_value);
+		break;
+	case CFG_SET_FRONT_CAMERA_MODE:
+		rc = as0260_set_front_camera_mode(cfg_data.cfg.frontcam_value);
+		break;
+	case CFG_SET_QTR_SIZE_MODE:
+		rc = as0260_set_qtr_size_mode(cfg_data.cfg.qtr_size_mode_value);
+		break;
+	case CFG_I2C_IOCTL_R_OTP:
+		rc = 0;
+		break;
+#if 0
+	case CFG_SET_EXPOSURE_MODE:
+		rc = s5k6aafx_set_metering_mode
+			(cfg_data.cfg.metering_value);
+		break;
+#endif
+	default:
+		rc = -EINVAL;
+		break;
+	}
+	return rc;
+}
+*/
 
 	static int as0260_set_sharpness(enum sharpness_mode sharpness_value)
 	{
@@ -4087,32 +4182,32 @@ static int as0260_set_qtr_size_mode(enum qtr_size_mode qtr_size_mode_value)
 		case CAMERA_SHARPNESS_X0:
             msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C14, MSM_CAMERA_I2C_WORD_DATA);
             msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC14, 0xFFF9, MSM_CAMERA_I2C_WORD_DATA);
-			
-			
+			//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C14);
+			//as0260_i2c_write(as0260_client->addr,0xCC14 ,0xFFF9);
 			break;
 		case CAMERA_SHARPNESS_X1:
 			msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C14, MSM_CAMERA_I2C_WORD_DATA);
             msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC14, 0x0001, MSM_CAMERA_I2C_WORD_DATA);
-			
-			
+			//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C14);
+			//as0260_i2c_write(as0260_client->addr,0xCC14 ,0x0001);
 			break;
 		case CAMERA_SHARPNESS_X2:
 			msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C14, MSM_CAMERA_I2C_WORD_DATA);
             msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC14, 0x0002, MSM_CAMERA_I2C_WORD_DATA);
-			
-			
+			//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C14);
+			//as0260_i2c_write(as0260_client->addr,0xCC14 ,0x0002);
 			break;
 		case CAMERA_SHARPNESS_X3:
 			msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C14, MSM_CAMERA_I2C_WORD_DATA);
             msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC14, 0x0003, MSM_CAMERA_I2C_WORD_DATA);
-			
-			
+			//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C14);
+			//as0260_i2c_write(as0260_client->addr,0xCC14 ,0x0003);
 			break;
 		case CAMERA_SHARPNESS_X4:
 			msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C14, MSM_CAMERA_I2C_WORD_DATA);
             msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC14, 0x0004, MSM_CAMERA_I2C_WORD_DATA);
-			
-			
+			//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C14);
+			//as0260_i2c_write(as0260_client->addr,0xCC14 ,0x0004);
 			break;
 		default:
 			break;
@@ -4161,56 +4256,56 @@ static int as0260_set_qtr_size_mode(enum qtr_size_mode qtr_size_mode_value)
 	case CAMERA_BRIGHTNESS_N4:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x0007, MSM_CAMERA_I2C_WORD_DATA);
-		
-		
+		//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x0037);
 		break;
 	case CAMERA_BRIGHTNESS_N3:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x0007, MSM_CAMERA_I2C_WORD_DATA);
-		
-		
+		//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x0047);
 		break;
 	case CAMERA_BRIGHTNESS_N2:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x0017, MSM_CAMERA_I2C_WORD_DATA);
-		
-		
+		//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x0057);
 		break;
 	case CAMERA_BRIGHTNESS_N1:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x0027, MSM_CAMERA_I2C_WORD_DATA);
-		
-		
+		//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x0067);
 		break;
 	case CAMERA_BRIGHTNESS_D:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x0037, MSM_CAMERA_I2C_WORD_DATA);
-		
-		
+		//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x0077);
 		break;
 	case CAMERA_BRIGHTNESS_P1:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x0057, MSM_CAMERA_I2C_WORD_DATA);
-	    
-		
+	    //as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x0087);
 		break;
 	case CAMERA_BRIGHTNESS_P2:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x0077, MSM_CAMERA_I2C_WORD_DATA);
-		
-		
+		//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x0097);
 		break;
 	case CAMERA_BRIGHTNESS_P3:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x0097, MSM_CAMERA_I2C_WORD_DATA);
-		
-		
+		//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x00A7);
 		break;
 	case CAMERA_BRIGHTNESS_P4:
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x098E, 0x4C0A, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC0A, 0x00A7, MSM_CAMERA_I2C_WORD_DATA);
-		
-		
+		//as0260_i2c_write(as0260_client->addr,0x098E ,0x4C0A);
+		//as0260_i2c_write(as0260_client->addr,0xCC0A ,0x00B7);
 		break;
 	default:
 		 break;
@@ -4319,6 +4414,7 @@ static int as0260_set_effect(int effect)
 	return 0;
 }
 
+/* HTC_START */
 static uint16_t org_exp_time = 0x0;
 static uint16_t org_global_gain = 0x0;
 static uint16_t capture_cnt = 0;
@@ -4348,17 +4444,17 @@ static int as0260_write_hdr_exp_gain(void *sctrl, uint16_t gain, uint16_t line)
 	else
 		capture_cnt ++;
 
-	
+	// HW limitation
 	if (line < 10)
 		line = 10;
 
 	pr_info("as0260_write_hdr_exposure_gain: gain 0x%x line 0x%x capture %d", gain, line, capture_cnt);
 
-	
+	// GROUPED_PARAMETER_HOLD_MASK_CORRUPTED_FRAMES
 	msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client, 0x3022, 0x0100, MSM_CAMERA_I2C_WORD_DATA);
-	
+	// COARSE_INTEGRATION_TIME
 	msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client, 0x3012, line, MSM_CAMERA_I2C_WORD_DATA);
-	
+	// GLOBAL_GAIN
 	msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client, 0x305E, gain, MSM_CAMERA_I2C_WORD_DATA);
 	msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client, 0x3022, 0x0000, MSM_CAMERA_I2C_WORD_DATA);
 
@@ -4382,6 +4478,7 @@ static int as0260_set_ae(int8_t ae_active)
     }
        return 0;
 }
+/* HTC_END */
 static enum wb_mode wb_value_old=CAMERA_AWB_AUTO;
 
 static int as0260_set_wb(enum wb_mode wb_value)
@@ -4392,24 +4489,24 @@ static int as0260_set_wb(enum wb_mode wb_value)
 
 	pr_info("%s: wb_value = %d\n", __func__, wb_value);
 	switch (wb_value) {
-	case CAMERA_AWB_AUTO:
+	case CAMERA_AWB_AUTO:/* AUTO */
 
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC01, 0x01, MSM_CAMERA_I2C_BYTE_DATA);
 		break;
-	case CAMERA_AWB_INDOOR_HOME:
+	case CAMERA_AWB_INDOOR_HOME:/*Fluorescent 4200k */
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC01, 0x00, MSM_CAMERA_I2C_BYTE_DATA);
         msleep(35);
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC18, 0x0FA0, MSM_CAMERA_I2C_WORD_DATA);
         msleep(120);
-        msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x32D4, 0x0082, MSM_CAMERA_I2C_WORD_DATA);    
-        msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x32DA, 0x0122, MSM_CAMERA_I2C_WORD_DATA); 
+        msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x32D4, 0x0082, MSM_CAMERA_I2C_WORD_DATA);    //  red_digital_gain    130
+        msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x32DA, 0x0122, MSM_CAMERA_I2C_WORD_DATA); //  blue_digital_gain   290
 	    break;
-	case CAMERA_AWB_INDOOR_OFFICE:
+	case CAMERA_AWB_INDOOR_OFFICE:/*Incandescent 3000k */
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC01, 0x00, MSM_CAMERA_I2C_BYTE_DATA);
         msleep(35);
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC18, 3000, MSM_CAMERA_I2C_WORD_DATA);
     	break;
-	case CAMERA_AWB_SUNNY:
+	case CAMERA_AWB_SUNNY:/*daylight 6500k D65*/
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC01, 0x00, MSM_CAMERA_I2C_BYTE_DATA);
 		msleep(35);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC18, 6500, MSM_CAMERA_I2C_WORD_DATA);
@@ -4417,7 +4514,7 @@ static int as0260_set_wb(enum wb_mode wb_value)
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x32D4, 0x00D5, MSM_CAMERA_I2C_WORD_DATA);
         msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0x32DA, 0x00CE, MSM_CAMERA_I2C_WORD_DATA);
 	    break;
-	case CAMERA_AWB_CLOUDY: 
+	case CAMERA_AWB_CLOUDY: /*Not support */
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC01, 0x0000, MSM_CAMERA_I2C_BYTE_DATA);
 		msleep(35);
 		msm_camera_i2c_write(as0260_s_ctrl.sensor_i2c_client,0xCC18, 0x1964, MSM_CAMERA_I2C_WORD_DATA);
@@ -4442,13 +4539,13 @@ static int as0260_set_front_camera_mode(enum frontcam_t frontcam_value)
 
 	switch (frontcam_value) {
 	case CAMERA_MIRROR:
-		
+		/*mirror and flip*/
 		break;
 	case CAMERA_REVERSE:
-		
+		/*reverse mode*/
 		break;
 	case CAMERA_PORTRAIT_REVERSE:
-		
+		/*portrait reverse mode*/
 		break;
 	default:
 		break;
@@ -4492,20 +4589,21 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 				s_ctrl->func_tbl->
 				sensor_write_exp_gain_ex(
 					s_ctrl,
-					cdata.mode, 
+					cdata.mode, /* HTC Angie 20111019 - Fix FPS */
 					cdata.cfg.exp_gain.gain,
-					cdata.cfg.exp_gain.dig_gain, 
+					cdata.cfg.exp_gain.dig_gain, /* HTC_START pg digi gain 20100710 */
 					cdata.cfg.exp_gain.line);
 			s_ctrl->prev_gain = cdata.cfg.exp_gain.gain;
 			s_ctrl->prev_line = cdata.cfg.exp_gain.line;
 			s_ctrl->prev_dig_gain= cdata.cfg.exp_gain.dig_gain;
 			break;
 
+/* HTC_START */
 		case CFG_SET_AE:
 			rc = as0260_set_ae(cdata.cfg.ae_active);
 			break;
 
-		
+		// Taken as image HDR here
 		case CFG_SET_HDR_EXP_GAIN:
 			if (s_ctrl->func_tbl->
 			sensor_write_hdr_exp_gain == NULL) {
@@ -4528,6 +4626,7 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 				sizeof(struct sensor_cfg_data)))
 				rc = -EFAULT;
 			break;
+/* HTC_END */
 
 		case CFG_SET_PICT_EXP_GAIN:
 			if (s_ctrl->func_tbl->
@@ -4539,9 +4638,9 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 				s_ctrl->func_tbl->
 				sensor_write_snapshot_exp_gain_ex(
 					s_ctrl,
-					cdata.mode, 
+					cdata.mode, /* HTC Angie 20111019 - Fix FPS */
 					cdata.cfg.exp_gain.gain,
-					cdata.cfg.exp_gain.dig_gain, 
+					cdata.cfg.exp_gain.dig_gain, /* HTC_START pg digi gain 20100710 */
 					cdata.cfg.exp_gain.line);
 			break;
 
@@ -4632,7 +4731,7 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 				sizeof(struct sensor_eeprom_data_t)))
 				rc = -EFAULT;
 			break;
-		
+		/* HTC_START*/
 		case CFG_I2C_IOCTL_R_OTP:{
 			pr_info("Line:%d CFG_I2C_IOCTL_R_OTP \n", __LINE__);
 			if (s_ctrl->func_tbl->sensor_i2c_read_fuseid == NULL) {
@@ -4644,7 +4743,7 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 			rc = -EFAULT;
 		}
 		break;
-		
+		/* HTC_END*/
 		case CFG_SET_AEC_WEIGHTING:
 			if (!s_ctrl->func_tbl->sensor_set_aec_weighting) {
 				rc = -EFAULT;
@@ -4698,15 +4797,15 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 					s_ctrl->func_tbl->
 					sensor_write_exp_gain_ex(
 						s_ctrl,
-						cdata.mode, 
+						cdata.mode, /* HTC Angie 20111019 - Fix FPS */
 						cdata.cfg.exp_gain.gain,
-						cdata.cfg.exp_gain.dig_gain, 
+						cdata.cfg.exp_gain.dig_gain, /* HTC_START pg digi gain 20100710 */
 						cdata.cfg.exp_gain.line);
 				s_ctrl->prev_gain = cdata.cfg.exp_gain.gain;
 				s_ctrl->prev_line = cdata.cfg.exp_gain.line;
 				s_ctrl->prev_dig_gain= cdata.cfg.exp_gain.dig_gain;
 				break;
-	
+	/* HTC_START 20121105 - video hdr */
 			case CFG_SET_HDR_EXP_GAIN:
 				if (s_ctrl->func_tbl->
 				sensor_write_hdr_exp_gain_ex == NULL) {
@@ -4717,7 +4816,7 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 					s_ctrl->func_tbl->
 					sensor_write_hdr_exp_gain_ex(
 						s_ctrl,
-						cdata.mode, 
+						cdata.mode, /* HTC Angie 20111019 - Fix FPS */
 						cdata.cfg.exp_gain.gain,
 						cdata.cfg.exp_gain.long_dig_gain,
 						cdata.cfg.exp_gain.short_dig_gain,
@@ -4736,7 +4835,7 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 						s_ctrl,
 						cdata.cfg.exp_gain.is_outdoor);
 				break;
-	
+	/* HTC_END */
 			case CFG_SET_PICT_EXP_GAIN:
 				if (s_ctrl->func_tbl->
 				sensor_write_snapshot_exp_gain_ex == NULL) {
@@ -4747,9 +4846,9 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 					s_ctrl->func_tbl->
 					sensor_write_snapshot_exp_gain_ex(
 						s_ctrl,
-						cdata.mode, 
+						cdata.mode, /* HTC Angie 20111019 - Fix FPS */
 						cdata.cfg.exp_gain.gain,
-						cdata.cfg.exp_gain.dig_gain, 
+						cdata.cfg.exp_gain.dig_gain, /* HTC_START pg digi gain 20100710 */
 						cdata.cfg.exp_gain.line);
 				break;
 	       #if 0
@@ -4814,7 +4913,7 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 					sizeof(struct sensor_eeprom_data_t)))
 					rc = -EFAULT;
 				break;
-			
+			/* HTC_START*/
 			case CFG_I2C_IOCTL_R_OTP:{
 				pr_info("Line:%d CFG_I2C_IOCTL_R_OTP \n", __LINE__);
 				if (s_ctrl->func_tbl->sensor_i2c_read_fuseid == NULL) {
@@ -4871,7 +4970,7 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
 		rc = 0;
 		break;
     #endif
-	
+	/* HTC_END*/
 	default:
 	 rc = -EFAULT;
 	 break;
@@ -4881,6 +4980,7 @@ int32_t as0260_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp
    #endif
 }
 
+//Hank Add 20130521 End
 
 void as0260_set_aec_weighting(struct msm_sensor_ctrl_t* ctrl,struct sensor_cfg_data* data)
 {
@@ -4899,14 +4999,14 @@ static struct msm_sensor_fn_t as0260_func_tbl = {
 	.sensor_group_hold_on = msm_sensor_group_hold_on,
 	.sensor_group_hold_off = msm_sensor_group_hold_off,
 	.sensor_set_fps = msm_sensor_set_fps,
-	.sensor_write_hdr_exp_gain = as0260_write_hdr_exp_gain, 
-	.sensor_write_exp_gain_ex = aptina_write_exp_gain, 
-	.sensor_write_snapshot_exp_gain_ex = aptina_write_exp_gain, 
+	.sensor_write_hdr_exp_gain = as0260_write_hdr_exp_gain, /* HTC */
+	.sensor_write_exp_gain_ex = aptina_write_exp_gain, // HTC pg 20121002 aptina don't need frame lenfth lines
+	.sensor_write_snapshot_exp_gain_ex = aptina_write_exp_gain, // HTC pg 20121002 aptina don't need frame lenfth lines
 	.sensor_setting = msm_sensor_setting_parallel,
 	.sensor_set_sensor_mode = msm_sensor_set_sensor_mode,
 	.sensor_mode_init = msm_sensor_mode_init,
 	.sensor_get_output_info = msm_sensor_get_output_info,
-	.sensor_config = as0260_sensor_config,
+	.sensor_config = as0260_sensor_config,//as0260_sensor_config,//msm_sensor_config
 	.sensor_power_up = as0260_power_up,
 	.sensor_power_down = as0260_power_down,
 	.sensor_i2c_read_fuseid = as0260_read_fuseid,
@@ -4914,7 +5014,7 @@ static struct msm_sensor_fn_t as0260_func_tbl = {
 };
 
 static struct msm_sensor_reg_t as0260_regs = {
-	.default_data_type = MSM_CAMERA_I2C_WORD_DATA,
+	.default_data_type = MSM_CAMERA_I2C_WORD_DATA,//MSM_CAMERA_I2C_BYTE_DATA
 	.start_stream_conf = as0260_start_settings,
 	.start_stream_conf_size = ARRAY_SIZE(as0260_start_settings),
 	.stop_stream_conf = as0260_stop_settings,
@@ -4961,7 +5061,7 @@ static struct msm_sensor_ctrl_t as0260_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(as0260_subdev_info),
 	.sensor_v4l2_subdev_ops = &as0260_subdev_ops,
 	.func_tbl = &as0260_func_tbl,
-	.sensor_first_mutex = &as0260_sensor_init_mut,  
+	.sensor_first_mutex = &as0260_sensor_init_mut,  //CC120826,
 };
 
 module_init(msm_sensor_init_module);

@@ -14,8 +14,10 @@
 #include "msm.h"
 #include "msm_ispif.h"
 #include "msm_camera_i2c_mux.h"
+/* HTC_START steven 20130626 fix i2c fail cause kernel panic in recovery mode */
 #include <linux/init.h>
 #include <linux/bootmem.h>
+/* HTC_END steven 20130626 fix i2c fail cause kernel panic in recovery mode */
 
 #ifdef CONFIG_RAWCHIP
 #include "rawchip/rawchip.h"
@@ -27,9 +29,12 @@
 #include "ilp0100_customer_sensor_config.h"
 #endif
 
+/* HTC_START robert 20121126 set lin count for OIS*/
+/*TODO: Redesign new path, get line cnt from sensor*/
 uint32_t ois_line;
+/*HTC_END*/
 
-extern char *saved_command_line;	
+extern char *saved_command_line;	/* HTC_START steven 20130626 FIXME:fix i2c fail cause kernel panic in recovery mode */
 
 static int oem_sensor_init(void *arg)
 {
@@ -41,10 +46,24 @@ static int oem_sensor_init(void *arg)
 	struct timespec ts_start, ts_end;
 #endif
 
-	
+	//mutex_lock(s_ctrl->sensor_first_mutex);
 	pr_info("%s: E", __func__);
-	
+	//msleep(1500);
 
+/*
+	switch (s_ctrl->intf) {
+	case RDI0:
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+			RDI_0, ISPIF_OFF_IMMEDIATELY));
+		break;
+	default:
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+			PIX_0, ISPIF_OFF_IMMEDIATELY));
+		break;
+	}
+*/
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 
 	s_ctrl->curr_csi_params = NULL;
@@ -73,7 +92,7 @@ static int oem_sensor_init(void *arg)
 	msleep(30);
 
 	msm_sensor_write_init_settings(s_ctrl);
-	
+	//mdelay(50);
 
 #ifdef CONFIG_RAWCHIP
 	if (s_ctrl->sensordata->use_rawchip) {
@@ -108,7 +127,7 @@ static int oem_sensor_init(void *arg)
 			s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].line_length_pclk;
 		rawchip_data.fullsize_frame_length_lines =
 			s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].frame_length_lines;
-		rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;
+		rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 
 		ktime_get_ts(&ts_start);
 		rawchip_set_size(rawchip_data);
@@ -125,7 +144,9 @@ static int oem_sensor_init(void *arg)
 
 	return 0;
 }
+//CC120826~, enhance launch time KPI.
 
+/*=============================================================*/
 int32_t msm_sensor_adjust_frame_lines(struct msm_sensor_ctrl_t *s_ctrl,
 	uint16_t res)
 {
@@ -206,6 +227,7 @@ int32_t msm_sensor_write_res_settings(struct msm_sensor_ctrl_t *s_ctrl,
 		return rc;
 	}
 
+/* HTC_START Angie 20120812 */
 	if (s_ctrl->func_tbl->sensor_write_output_settings_specific) {
 		rc = s_ctrl->func_tbl->sensor_write_output_settings_specific(s_ctrl, res);
 		if (rc < 0)
@@ -214,10 +236,12 @@ int32_t msm_sensor_write_res_settings(struct msm_sensor_ctrl_t *s_ctrl,
 			return rc;
 		}
 	}
+/* HTC_END */
 
 	if (s_ctrl->func_tbl->sensor_adjust_frame_lines)
 		rc = s_ctrl->func_tbl->sensor_adjust_frame_lines(s_ctrl, res);
 
+/* HTC_START Steven 20130528 fix bad frame issue with quick launc on ov4688 sensor */
 	if (s_ctrl->func_tbl->sensor_yushanII_set_default_ae) {
 		s_ctrl->func_tbl->sensor_yushanII_set_default_ae(s_ctrl, res);
 	} else {
@@ -234,6 +258,7 @@ int32_t msm_sensor_write_res_settings(struct msm_sensor_ctrl_t *s_ctrl,
 			}
 		}
 	}
+/* HTC_END Steven 20130528 fix bad frame issue with quick launc on ov4688 sensor */
 
 	return rc;
 }
@@ -325,6 +350,7 @@ void msm_sensor_group_hold_off(struct msm_sensor_ctrl_t *s_ctrl)
 		s_ctrl->msm_sensor_reg->default_data_type);
 }
 
+/* HTC_START Steven 20130528 fix bad frame issue with quick launc on ov4688 sensor */
 void msm_sensor_group_hold_on_hdr(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	CDBG("%s: called\n", __func__);
@@ -346,6 +372,7 @@ void msm_sensor_group_hold_off_hdr(struct msm_sensor_ctrl_t *s_ctrl)
 		s_ctrl->msm_sensor_reg->group_hold_off_conf_size_hdr,
 		s_ctrl->msm_sensor_reg->default_data_type);
 }
+/* HTC_ENDS Steven 20130528 fix bad frame issue with quick launc on ov4688 sensor */
 
 int32_t msm_sensor_set_fps(struct msm_sensor_ctrl_t *s_ctrl,
 						struct fps_cfg *fps)
@@ -456,19 +483,25 @@ int32_t msm_sensor_setting3(struct msm_sensor_ctrl_t *s_ctrl,
 }
 
 int32_t msm_sensor_write_exp_gain1_ex(struct msm_sensor_ctrl_t *s_ctrl,
-		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line) 
+		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line) /* HTC Angie 20111019 - Fix FPS */
 {
 	uint32_t fl_lines;
 	uint8_t offset;
 
+/* HTC_START Angie 20111019 - Fix FPS */
 	uint32_t fps_divider = Q10;
 	CDBG("%s: called\n", __func__);
+/* HTC_START robert 20121126 set lin count for OIS*/
+/*TODO: Redesign new path, get line cnt from sensor*/
     ois_line = line;
+/* HTC_END */
 	if (mode == SENSOR_PREVIEW_MODE)
 		fps_divider = s_ctrl->fps_divider;
 
+/* HTC_START ben 20120229 */
 	if(line > s_ctrl->sensor_exp_gain_info->sensor_max_linecount)
 		line = s_ctrl->sensor_exp_gain_info->sensor_max_linecount;
+/* HTC_END */
 
 	fl_lines = s_ctrl->curr_frame_length_lines;
 	offset = s_ctrl->sensor_exp_gain_info->vert_offset;
@@ -476,6 +509,7 @@ int32_t msm_sensor_write_exp_gain1_ex(struct msm_sensor_ctrl_t *s_ctrl,
 		fl_lines = line + offset;
 	else
 		fl_lines = (fl_lines * fps_divider) / Q10;
+/* HTC_END */
 
 	s_ctrl->func_tbl->sensor_group_hold_on(s_ctrl);
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
@@ -493,19 +527,20 @@ int32_t msm_sensor_write_exp_gain1_ex(struct msm_sensor_ctrl_t *s_ctrl,
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
 		s_ctrl->sensor_exp_gain_info->global_gain_addr, gain,
 		MSM_CAMERA_I2C_WORD_DATA);
-	
+	/* HTC_START pg digi gain 20100710 */
 	if (s_ctrl->func_tbl->sensor_set_dig_gain)
 		s_ctrl->func_tbl->sensor_set_dig_gain(s_ctrl, dig_gain);
-	
+	/* HTC_END pg digi gain 20100710 */
 	s_ctrl->func_tbl->sensor_group_hold_off(s_ctrl);
 	return 0;
 }
 
 int32_t msm_sensor_write_exp_gain2_ex(struct msm_sensor_ctrl_t *s_ctrl,
-		int mode, uint16_t gain, uint32_t line) 
+		int mode, uint16_t gain, uint32_t line) /* HTC Angie 20111019 - Fix FPS */
 {
 	uint32_t fl_lines, ll_pclk, ll_ratio;
 	uint8_t offset;
+/* HTC_START Angie 20111019 - Fix FPS */
 	uint32_t fps_divider = Q10;
 	CDBG("%s: called\n", __func__);
 
@@ -522,6 +557,7 @@ int32_t msm_sensor_write_exp_gain2_ex(struct msm_sensor_ctrl_t *s_ctrl,
 		ll_pclk = ll_pclk * fps_divider / Q10;
 		line = line / fps_divider;
 	}
+/* HTC_END */
 
 	s_ctrl->func_tbl->sensor_group_hold_on(s_ctrl);
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
@@ -537,24 +573,28 @@ int32_t msm_sensor_write_exp_gain2_ex(struct msm_sensor_ctrl_t *s_ctrl,
 	return 0;
 }
 
+/* HTC_START Steven 20120704 OV exposure */
 int32_t msm_sensor_write_exp_gain_ov(struct msm_sensor_ctrl_t *s_ctrl,
 		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line)
 {
 	uint32_t fl_lines;
 	uint8_t offset;
-	uint32_t aec_msb_24; 
+	uint32_t aec_msb_24; //easter for frame rate=10fps 20110526
 	uint16_t aec_msb;
 	uint16_t aec_lsb;
 	uint32_t phy_line_2 = 0;
 
+/* HTC_START Angie 20111019 - Fix FPS */
 	uint32_t fps_divider = Q10;
 	CDBG("%s: called\n", __func__);
 
 	if (mode == SENSOR_PREVIEW_MODE)
 		fps_divider = s_ctrl->fps_divider;
 
+/* HTC_START ben 20120229 */
 	if(line > s_ctrl->sensor_exp_gain_info->sensor_max_linecount)
 		line = s_ctrl->sensor_exp_gain_info->sensor_max_linecount;
+/* HTC_END */
 
 	fl_lines = s_ctrl->curr_frame_length_lines;
 	offset = s_ctrl->sensor_exp_gain_info->vert_offset;
@@ -562,6 +602,7 @@ int32_t msm_sensor_write_exp_gain_ov(struct msm_sensor_ctrl_t *s_ctrl,
 		fl_lines = line + offset;
 	else
 		fl_lines = (fl_lines * fps_divider) / Q10;
+/* HTC_END */
 
 	s_ctrl->func_tbl->sensor_group_hold_on(s_ctrl);
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
@@ -569,7 +610,7 @@ int32_t msm_sensor_write_exp_gain_ov(struct msm_sensor_ctrl_t *s_ctrl,
 		MSM_CAMERA_I2C_WORD_DATA);
 
 	phy_line_2 = line << 4;
-	aec_msb_24 = (uint32_t)(phy_line_2 & 0xFF0000) >> 16;
+	aec_msb_24 = (uint32_t)(phy_line_2 & 0xFF0000) >> 16;//easter for frame rate=10fps 20110526
 	aec_msb = (uint16_t)(phy_line_2 & 0xFF00) >> 8;
 	aec_lsb = (uint16_t)(phy_line_2 & 0x00FF);
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client, s_ctrl->sensor_exp_gain_info->coarse_int_time_addr, (uint8_t)aec_msb_24, MSM_CAMERA_I2C_BYTE_DATA);
@@ -582,6 +623,7 @@ int32_t msm_sensor_write_exp_gain_ov(struct msm_sensor_ctrl_t *s_ctrl,
 	s_ctrl->func_tbl->sensor_group_hold_off(s_ctrl);
 	return 0;
 }
+/* HTC_END Steven 20120704 OV exposure */
 
 int32_t msm_sensor_setting1(struct msm_sensor_ctrl_t *s_ctrl,
 			int update_type, int res)
@@ -669,7 +711,7 @@ int32_t msm_sensor_setting1(struct msm_sensor_ctrl_t *s_ctrl,
 				rawchip_data.fullsize_frame_length_lines =
 					s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].frame_length_lines;
 					CDBG("rawchip_data.fullsize_frame_length_lines = %d\n", rawchip_data.fullsize_frame_length_lines);
-				rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;
+				rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 
 				ktime_get_ts(&ts_start);
 				rawchip_set_size(rawchip_data);
@@ -696,11 +738,13 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 	pr_info("%s: update_type=%d, res=%d\n", __func__, update_type, res);
 
 	if (update_type == MSM_SENSOR_REG_INIT) {
+//CC140207
 		if (s_ctrl->first_init)   {
 			pr_info("%s: MSM_SENSOR_REG_INIT already inited\n", __func__);
 			return rc;
 		}
-		mutex_lock(s_ctrl->sensor_first_mutex);  
+//CC140207~
+		mutex_lock(s_ctrl->sensor_first_mutex);  //CC120922
 
 #ifdef CONFIG_RAWCHIPII
 		if (s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
@@ -713,15 +757,15 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 			pr_err("%s: kthread_create failed", __func__);
 			rc = PTR_ERR(s_ctrl->tsk_sensor_init);
 			s_ctrl->tsk_sensor_init = NULL;
-			mutex_unlock(s_ctrl->sensor_first_mutex);  
+			mutex_unlock(s_ctrl->sensor_first_mutex);  //CC120922
 		} else
 			wake_up_process(s_ctrl->tsk_sensor_init);
 
 		s_ctrl->first_init = 1;
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
-		
+		/*TODO : pointer to each sensor driver to get correct delay time*/
 
-		
+		//CC120826, enhance launch time KPI.
 		mutex_lock(s_ctrl->sensor_first_mutex);
 
 #ifdef CONFIG_RAWCHIPII
@@ -750,8 +794,8 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 			mdelay(50);
 		s_ctrl->first_init = 0;
 
-		pr_info("%s: update_type=MSM_SENSOR_UPDATE_PERIODIC, res=%d\n", __func__, res);  
-		
+		pr_info("%s: update_type=MSM_SENSOR_UPDATE_PERIODIC, res=%d\n", __func__, res);  //CC120826
+		//CC120826~, enhance launch time KPI.
 
 		msm_sensor_write_res_settings(s_ctrl, res);
 		if (s_ctrl->curr_csi_params != s_ctrl->csi_params[res]) {
@@ -803,7 +847,7 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 				s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].line_length_pclk;
 			rawchip_data.fullsize_frame_length_lines =
 				s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].frame_length_lines;
-			rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;
+			rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 
 			ktime_get_ts(&ts_start);
 			rawchip_set_size(rawchip_data);
@@ -815,7 +859,7 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 
 #ifdef CONFIG_RAWCHIPII
 			if (s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
-				if (s_ctrl->msm_sensor_reg->output_settings_yushanii)	 
+				if (s_ctrl->msm_sensor_reg->output_settings_yushanii)	/*TODO:Fix me: temp solution: send one line to Y2 as status line */ //HTC_START steven wu 20121120 fix preview segmentation(CAMIF error)
 					s_ctrl->msm_sensor_reg->output_settings = s_ctrl->msm_sensor_reg->output_settings_yushanii;
 				YushanII_Init(s_ctrl,res);
 			}
@@ -839,7 +883,7 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 		}
 		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
 		msleep(30);
-		mutex_unlock(s_ctrl->sensor_first_mutex);  
+		mutex_unlock(s_ctrl->sensor_first_mutex);  //CC120826
 	}
 	return rc;
 }
@@ -878,7 +922,7 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 		msm_sensor_write_init_settings(s_ctrl);
 		s_ctrl->first_init = 1;
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
-		
+		/*TODO : pointer to each sensor driver to get correct delay time*/
 		if(!s_ctrl->first_init)
 			mdelay(50);
 		s_ctrl->first_init = 0;
@@ -932,7 +976,7 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 					s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].line_length_pclk;
 				rawchip_data.fullsize_frame_length_lines =
 					s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].frame_length_lines;
-				rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;
+				rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 
 				ktime_get_ts(&ts_start);
 				rawchip_set_size(rawchip_data);
@@ -993,6 +1037,7 @@ int32_t msm_sensor_setting_ov(struct msm_sensor_ctrl_t *s_ctrl,
 	if (update_type == MSM_SENSOR_REG_INIT) {
 		s_ctrl->curr_csi_params = NULL;
 		msm_sensor_enable_debugfs(s_ctrl);
+/*CC120518, WA, for issue of 0260 streaming on after initialize phase */
 		if (s_ctrl->sensor_id_info->sensor_id == 0x4581) {
 			s_ctrl->curr_csi_params = s_ctrl->csi_params[res];
 			s_ctrl->curr_csi_params->csid_params.lane_assign =
@@ -1013,10 +1058,11 @@ int32_t msm_sensor_setting_ov(struct msm_sensor_ctrl_t *s_ctrl,
 			mb();
 			msleep(20);
 		}
+/*CC120518~*/
 		msm_sensor_write_init_settings(s_ctrl);
 		s_ctrl->first_init = 1;
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
-		
+		/*TODO : pointer to each sensor driver to get correct delay time*/
 		if(!s_ctrl->first_init)
 			mdelay(50);
 		s_ctrl->first_init = 0;
@@ -1071,7 +1117,7 @@ int32_t msm_sensor_setting_ov(struct msm_sensor_ctrl_t *s_ctrl,
 					s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].line_length_pclk;
 				rawchip_data.fullsize_frame_length_lines =
 					s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].frame_length_lines;
-				rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;
+				rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 
 				ktime_get_ts(&ts_start);
 				rawchip_set_size(rawchip_data);
@@ -1191,7 +1237,7 @@ static int oem_sensor_init_ov(void *arg)
 				s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].line_length_pclk;
 			rawchip_data.fullsize_frame_length_lines =
 				s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].frame_length_lines;
-			rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;
+			rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 
 			ktime_get_ts(&ts_start);
 			rawchip_set_size(rawchip_data);
@@ -1202,7 +1248,7 @@ static int oem_sensor_init_ov(void *arg)
 #endif
 
 	pr_info("%s: X", __func__);
-	mutex_unlock(s_ctrl->sensor_first_mutex);  
+	mutex_unlock(s_ctrl->sensor_first_mutex);  //CC120922
 
 	return rc;
 }
@@ -1221,11 +1267,13 @@ int32_t msm_sensor_setting_parallel_ov(struct msm_sensor_ctrl_t *s_ctrl,
 	pr_info("%s: update_type=%d, res=%d\n", __func__, update_type, res);
 
 	if (update_type == MSM_SENSOR_REG_INIT) {
+//CC140207
 		if (s_ctrl->first_init)   {
 			pr_info("%s: MSM_SENSOR_REG_INIT already inited\n", __func__);
 			return rc;
 		}
-		mutex_lock(s_ctrl->sensor_first_mutex);  
+//CC140207~
+		mutex_lock(s_ctrl->sensor_first_mutex);  //CC120922
 
 #ifdef CONFIG_RAWCHIPII
 		if (s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
@@ -1238,10 +1286,10 @@ int32_t msm_sensor_setting_parallel_ov(struct msm_sensor_ctrl_t *s_ctrl,
 			pr_err("%s: kthread_create failed", __func__);
 			rc = PTR_ERR(s_ctrl->tsk_sensor_init);
 			s_ctrl->tsk_sensor_init = NULL;
-			mutex_unlock(s_ctrl->sensor_first_mutex);  
+			mutex_unlock(s_ctrl->sensor_first_mutex);  //CC120922
 		} else
 			wake_up_process(s_ctrl->tsk_sensor_init);
-			 
+			/* mutex_unlock in oem_sensor_init_ov */ /* sync the commit as oem_sensor_init */
 
 		s_ctrl->first_init = 1;
 		
@@ -1264,13 +1312,13 @@ int32_t msm_sensor_setting_parallel_ov(struct msm_sensor_ctrl_t *s_ctrl,
 		msleep(30);
 		s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 
-		
+		/*TODO : pointer to each sensor driver to get correct delay time*/
 		if(!s_ctrl->first_init)
 			mdelay(50);
 		s_ctrl->first_init = 0;
 
-		pr_info("%s: update_type=MSM_SENSOR_UPDATE_PERIODIC, res=%d\n", __func__, res);  
-		
+		pr_info("%s: update_type=MSM_SENSOR_UPDATE_PERIODIC, res=%d\n", __func__, res);  //CC120826
+		//CC120826~, enhance launch time KPI.
 
 		msm_sensor_write_res_settings(s_ctrl, res);
 		if (s_ctrl->curr_csi_params != s_ctrl->csi_params[res]) {
@@ -1325,7 +1373,7 @@ int32_t msm_sensor_setting_parallel_ov(struct msm_sensor_ctrl_t *s_ctrl,
 				s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].line_length_pclk;
 			rawchip_data.fullsize_frame_length_lines =
 				s_ctrl->msm_sensor_reg->output_settings[MSM_SENSOR_RES_FULL].frame_length_lines;
-			rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;
+			rawchip_data.use_rawchip = s_ctrl->sensordata->use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 
 			ktime_get_ts(&ts_start);
 			rawchip_set_size(rawchip_data);
@@ -1420,26 +1468,31 @@ int32_t msm_sensor_get_output_info(struct msm_sensor_ctrl_t *s_ctrl,
 	CDBG("%s: called\n", __func__);
 
 	sensor_output_info->num_info = s_ctrl->msm_sensor_reg->num_conf;
+/* HTC_START Angie 20111019 - Fix FPS */
 	sensor_output_info->vert_offset = s_ctrl->sensor_exp_gain_info->vert_offset;
 	sensor_output_info->min_vert = s_ctrl->sensor_exp_gain_info->min_vert;
 	sensor_output_info->mirror_flip = s_ctrl->mirror_flip;
 
+/* HTC_START ben 20120229 */
+	/* FIXME: assign sensor_max_linecount in each sensor file.
+	*  sensor_max_linecount depends on sensor's linecount register size. */
 
-	
+	/* WORKAROUND: set default sensor_max_linecount as max unsigned 32-bit value */
 	if(s_ctrl->sensor_exp_gain_info->sensor_max_linecount == 0)
 		s_ctrl->sensor_exp_gain_info->sensor_max_linecount = 0xFFFFFFFF;
 
 	sensor_output_info->sensor_max_linecount = s_ctrl->sensor_exp_gain_info->sensor_max_linecount;
-	
+/* HTC_END */
+	// HTC_START pg 20130422 ov4688 flicker
     for (i=0;i<s_ctrl->msm_sensor_reg->num_conf;++i) {
         if (s_ctrl->adjust_y_output_size)
             s_ctrl->msm_sensor_reg->output_settings[i].y_output -= 1;
         if (s_ctrl->adjust_frame_length_line)
             s_ctrl->msm_sensor_reg->output_settings[i].line_length_pclk *= 2;
     }
-	
-	
-	 
+	// HTC_END pg 20130422 ov4688 flicker
+	/* HTC_START steven bring sensor parms 20121119 */
+	/*TODO:Fix me: temp solution: send one line to Y2 as status line */ //HTC_START steven wu 20121120 fix preview segmentation(CAMIF error)
 	if ((s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) && (s_ctrl->msm_sensor_reg->output_settings_yushanii)) {
 		if (copy_to_user((void *)sensor_output_info->output_info,
 			s_ctrl->msm_sensor_reg->output_settings_yushanii,
@@ -1453,15 +1506,15 @@ int32_t msm_sensor_get_output_info(struct msm_sensor_ctrl_t *s_ctrl,
 			s_ctrl->msm_sensor_reg->num_conf))
 			rc = -EFAULT;
 	}
-	
+	// HTC_START pg 20130422 ov4688 flicker
     for (i=0;i<s_ctrl->msm_sensor_reg->num_conf;++i) {
         if (s_ctrl->adjust_y_output_size)
             s_ctrl->msm_sensor_reg->output_settings[i].y_output += 1;
         if (s_ctrl->adjust_frame_length_line)
             s_ctrl->msm_sensor_reg->output_settings[i].line_length_pclk /= 2;
     }
-    
-	
+    // HTC_END pg 20130422 ov4688 flicker
+	/* HTC_END steven bring sensor parms 20121119 */
 	return rc;
 }
 
@@ -1497,7 +1550,7 @@ int32_t msm_sensor_interface_config(struct msm_sensor_ctrl_t *s_ctrl, void __use
 	CDBG("%s: msm_ispif_config: cfgtype = %d\n", __func__, cdata.cfgtype);
 
 		switch (cdata.cfgtype) {
-		
+		/* HTC_START sungfeng 20130517*/
 		case CFG_SET_ISP_INTERFACE:
 		{
 			uint8_t cur_csid = 0;
@@ -1558,7 +1611,7 @@ int32_t msm_sensor_interface_config(struct msm_sensor_ctrl_t *s_ctrl, void __use
 			}
 
 			break;
-		
+		/* HTC_END*/
 		default:
 			rc = -EFAULT;
 			break;
@@ -1627,15 +1680,16 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				s_ctrl->func_tbl->
 				sensor_write_exp_gain_ex(
 					s_ctrl,
-					cdata.mode, 
+					cdata.mode, /* HTC Angie 20111019 - Fix FPS */
 					cdata.cfg.exp_gain.gain,
-					cdata.cfg.exp_gain.dig_gain, 
+					cdata.cfg.exp_gain.dig_gain, /* HTC_START pg digi gain 20100710 */
 					cdata.cfg.exp_gain.line);
 			s_ctrl->prev_gain = cdata.cfg.exp_gain.gain;
 			s_ctrl->prev_line = cdata.cfg.exp_gain.line;
 			s_ctrl->prev_dig_gain= cdata.cfg.exp_gain.dig_gain;
 			break;
 
+/* HTC_START 20121105 - video hdr */
 		case CFG_SET_HDR_EXP_GAIN:
 			if (s_ctrl->func_tbl->
 			sensor_write_hdr_exp_gain_ex == NULL) {
@@ -1646,7 +1700,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				s_ctrl->func_tbl->
 				sensor_write_hdr_exp_gain_ex(
 					s_ctrl,
-					cdata.mode, 
+					cdata.mode, /* HTC Angie 20111019 - Fix FPS */
 					cdata.cfg.exp_gain.gain,
 					cdata.cfg.exp_gain.long_dig_gain,
 					cdata.cfg.exp_gain.short_dig_gain,
@@ -1665,6 +1719,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 					s_ctrl,
 					cdata.cfg.exp_gain.is_outdoor);
 			break;
+/* HTC_END */
 
 		case CFG_SET_PICT_EXP_GAIN:
 			if (s_ctrl->func_tbl->
@@ -1676,9 +1731,9 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				s_ctrl->func_tbl->
 				sensor_write_snapshot_exp_gain_ex(
 					s_ctrl,
-					cdata.mode, 
+					cdata.mode, /* HTC Angie 20111019 - Fix FPS */
 					cdata.cfg.exp_gain.gain,
-					cdata.cfg.exp_gain.dig_gain, 
+					cdata.cfg.exp_gain.dig_gain, /* HTC_START pg digi gain 20100710 */
 					cdata.cfg.exp_gain.line);
 			break;
 
@@ -1745,7 +1800,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				sizeof(struct sensor_eeprom_data_t)))
 				rc = -EFAULT;
 			break;
-		
+		/* HTC_START*/
 		case CFG_I2C_IOCTL_R_OTP:{
 			pr_info("Line:%d CFG_I2C_IOCTL_R_OTP \n", __LINE__);
 			if (s_ctrl->func_tbl->sensor_i2c_read_fuseid == NULL) {
@@ -1757,7 +1812,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 			rc = -EFAULT;
 		}
 		break;
-		
+		/* HTC_END*/
 		case CFG_SET_BLACK_LEVEL_CALIBRATION_ONGOING:
 			s_ctrl->is_black_level_calibration_ongoing = TRUE;
 			break;
@@ -1912,7 +1967,7 @@ int32_t msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	return 0;
 }
 
-int32_t msm_sensor_set_power_up(struct msm_sensor_ctrl_t *s_ctrl)
+int32_t msm_sensor_set_power_up(struct msm_sensor_ctrl_t *s_ctrl)//(const struct msm_camera_sensor_info *data)
 {
 	int32_t rc = 0;
 	int32_t gpio = 0;
@@ -1949,7 +2004,7 @@ int32_t msm_sensor_set_power_up(struct msm_sensor_ctrl_t *s_ctrl)
     return rc;
 }
 
-int32_t msm_sensor_set_power_down(struct msm_sensor_ctrl_t *s_ctrl)
+int32_t msm_sensor_set_power_down(struct msm_sensor_ctrl_t *s_ctrl)//(const struct msm_camera_sensor_info *data)
 {
 	int32_t gpio = 0;
 	struct msm_camera_sensor_info *data = NULL;
@@ -1978,8 +2033,8 @@ int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t rc = 0;
 	uint16_t chipid = 0;
-#if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_IMPRESSION_J)\
-		|| defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DELUXE_UL) || defined(CONFIG_MACH_DUMMY)
+#if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DELUXE_J) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_IMPRESSION_J)\
+		|| defined(CONFIG_MACH_DELUXE_U) || defined(CONFIG_MACH_DELUXE_UL) || defined(CONFIG_MACH_DELUXE_UB1)
 	int i=1;
 #else
 	int i=10;
@@ -2009,7 +2064,7 @@ int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 	}
 
 	pr_info("%s: msm_sensor id: 0x%x,expect sensor_id=0x%x\n", __func__, chipid, s_ctrl->sensor_id_info->sensor_id);
-#if 1	
+#if 1	//FIXME: need to be removed, temp test only for check more information on ar0260 front camera
 		if (s_ctrl->sensor_id_info->sensor_id == 0x4581)
 		{
 			uint16_t chipid2 = 0;
@@ -2026,11 +2081,11 @@ int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 		}
 #endif
 	if (chipid != s_ctrl->sensor_id_info->sensor_id) {
-#if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_IMPRESSION_J)\
-    || defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DELUXE_UL)
+#if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DELUXE_J) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_IMPRESSION_J)\
+    || defined(CONFIG_MACH_DELUXE_U) || defined(CONFIG_MACH_DELUXE_UL)
 		if (chipid == 0x174 && s_ctrl->sensor_id_info->sensor_id == 0x175)
 		{
-			
+			//Optical promise ONLY this 100 pcs have wrong. Others sensor will be OK.
 			pr_info("%s: WA for Liteon module written wrong sensor ID as IMX174\n", __func__);
 			return rc;
 		}
@@ -2077,13 +2132,13 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 		return -EFAULT;
 	}
 
-	msm_camio_probe_on_bootup(s_ctrl);	
+	msm_camio_probe_on_bootup(s_ctrl);	//HTC_START steven 20120619 fix display dark screen on bootup stage
 
 	if (s_ctrl->sensordata->use_rawchip) {
 #ifdef CONFIG_RAWCHIP
 		rc = rawchip_probe_init();
 		if (rc < 0) {
-			msm_camio_probe_on_bootup(s_ctrl);	
+			msm_camio_probe_on_bootup(s_ctrl);	//HTC_START steven 20120619 fix display dark screen on bootup stage
 
 			pr_err("%s: rawchip probe init failed\n", __func__);
 			return rc;
@@ -2100,7 +2155,7 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 				pr_info("%s: update htc_image to 0", __func__);
 				s_ctrl->sensordata->camera_yushanii_probed(HTC_CAMERA_IMAGE_NONE_BOARD);
 			}
-			
+			/* return rc; */
 		} else {
 			pr_info("%s rawhchip probe init success\n", __func__);
 			if(s_ctrl->sensordata->camera_yushanii_probed != NULL) {
@@ -2145,8 +2200,10 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 	v4l2_i2c_subdev_init(&s_ctrl->sensor_v4l2_subdev, client,
 		s_ctrl->sensor_v4l2_subdev_ops);
 
+/* HTC_START steven multiple VCM 20120604 */
     if (s_ctrl->func_tbl->sensor_i2c_read_vcm_driver_ic != NULL)
       s_ctrl->func_tbl->sensor_i2c_read_vcm_driver_ic(s_ctrl);
+/* HTC_END steven multiple VCM 20120604 */
 
 	msm_sensor_register(&s_ctrl->sensor_v4l2_subdev);
 	goto power_down;
@@ -2171,9 +2228,9 @@ power_down:
 #endif
 	}
 
-	msm_camio_probe_off_bootup(s_ctrl);	
+	msm_camio_probe_off_bootup(s_ctrl);	//HTC_START steven 20120619 fix display dark screen on bootup stage
 
-	s_ctrl->intf = PIX0; 
+	s_ctrl->intf = PIX0; /* HTC sungfeng 20130517 init isp interface type */
 	s_ctrl->tsk_sensor_init = NULL;
 	s_ctrl->first_init = 0;
 
@@ -2413,6 +2470,7 @@ void msm_dump_otp_to_file (const char* sensor_name, int valid_layer, short start
     }  
 }  
 
+/* HTC_START steven 20130626 fix i2c fail cause kernel panic in recovery mode */
 void msm_read_command_line(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	char *p;
@@ -2445,3 +2503,4 @@ void msm_read_command_line(struct msm_sensor_ctrl_t *s_ctrl)
 		}
 	}
 }
+/* HTC_END steven 20130626 fix i2c fail cause kernel panic in recovery mode */

@@ -52,11 +52,11 @@
 #include "board-m7cdug.h"
 #elif defined(CONFIG_MACH_DUMMY)
 #include "board-m7cdwg.h"
-#elif defined(CONFIG_MACH_DLP_DTU)
+#elif defined(CONFIG_MACH_DUMMY)
 #include "board-dlp_dtu.h"
-#elif defined(CONFIG_MACH_DLP_DUG)
+#elif defined(CONFIG_MACH_DUMMY)
 #include "board-dlp_dug.h"
-#elif defined(CONFIG_MACH_DLP_DWG)
+#elif defined(CONFIG_MACH_DUMMY)
 #include "board-dlp_dwg.h"
 #endif
 
