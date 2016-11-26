@@ -1113,17 +1113,20 @@ static const struct snd_kcontrol_new tabla_snd_controls[] = {
 	SOC_SINGLE_EXT_TLV("LINEOUT Ramp Volume", 0, 0, HPH_RX_GAIN_MAX, 1,
 		tabla_lineout_get_vol_ramp, tabla_lineout_set_vol_ramp, line_gain),
 //HTC_AUD_END
-
 	SOC_SINGLE_S8_TLV("RX1 Digital Volume", TABLA_A_CDC_RX1_VOL_CTL_B2_CTL,
 		-84, 40, digital_gain),
 	SOC_SINGLE_S8_TLV("RX2 Digital Volume", TABLA_A_CDC_RX2_VOL_CTL_B2_CTL,
 		-84, 40, digital_gain),
+#ifndef CONFIG_SOUND_CONTROL
 	SOC_SINGLE_S8_TLV("RX3 Digital Volume", TABLA_A_CDC_RX3_VOL_CTL_B2_CTL,
 		-84, 40, digital_gain),
+#endif
 	SOC_SINGLE_S8_TLV("RX4 Digital Volume", TABLA_A_CDC_RX4_VOL_CTL_B2_CTL,
 		-84, 40, digital_gain),
+#ifndef CONFIG_SOUND_CONTROL
 	SOC_SINGLE_S8_TLV("RX5 Digital Volume", TABLA_A_CDC_RX5_VOL_CTL_B2_CTL,
 		-84, 40, digital_gain),
+#endif
 	SOC_SINGLE_S8_TLV("RX6 Digital Volume", TABLA_A_CDC_RX6_VOL_CTL_B2_CTL,
 		-84, 40, digital_gain),
 	SOC_SINGLE_S8_TLV("RX7 Digital Volume", TABLA_A_CDC_RX7_VOL_CTL_B2_CTL,
@@ -8189,6 +8192,55 @@ static const struct file_operations codec_mbhc_debug_ops = {
 };
 #endif
 
+#ifdef CONFIG_SOUND_CONTROL
+static struct snd_soc_codec *sound_control_codec_ptr;
+
+static ssize_t headphone_gain_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d %d\n",
+		snd_soc_read(sound_control_codec_ptr, TABLA_A_CDC_RX3_VOL_CTL_B2_CTL),
+		snd_soc_read(sound_control_codec_ptr, TABLA_A_CDC_RX5_VOL_CTL_B2_CTL)
+	);
+}
+
+static ssize_t headphone_gain_store(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
+{
+
+	int input_l, input_r;
+
+	sscanf(buf, "%d %d", &input_l, &input_r);
+
+	if (input_l < -84 || input_l > 20)
+		input_l = 0;
+
+	if (input_r < -84 || input_r > 20)
+		input_r = 0;
+
+	snd_soc_write(sound_control_codec_ptr, TABLA_A_CDC_RX3_VOL_CTL_B2_CTL, input_l);
+	snd_soc_write(sound_control_codec_ptr, TABLA_A_CDC_RX5_VOL_CTL_B2_CTL, input_r);
+
+	return count;
+}
+
+static struct kobj_attribute headphone_gain_attribute =
+	__ATTR(headphone_gain, 0664,
+		headphone_gain_show,
+		headphone_gain_store);
+
+static struct attribute *sound_control_attrs[] = {
+		&headphone_gain_attribute.attr,
+		NULL,
+};
+
+static struct attribute_group sound_control_attr_group = {
+		.attrs = sound_control_attrs,
+};
+
+static struct kobject *sound_control_kobj;
+#endif
+
 static int tabla_codec_probe(struct snd_soc_codec *codec)
 {
 	struct wcd9xxx *control;
@@ -8197,6 +8249,10 @@ static int tabla_codec_probe(struct snd_soc_codec *codec)
 	int ret = 0;
 	int i;
 	int ch_cnt;
+
+#ifdef CONFIG_SOUND_CONTROL
+	sound_control_codec_ptr = codec;
+#endif
 
 	codec->control_data = dev_get_drvdata(codec->dev->parent);
 	control = codec->control_data;
@@ -8408,6 +8464,19 @@ static int tabla_codec_probe(struct snd_soc_codec *codec)
 	}
 #endif
 	codec->ignore_pmdown_time = 1;
+
+#ifdef CONFIG_SOUND_CONTROL
+	sound_control_kobj = kobject_create_and_add("sound_control", kernel_kobj);
+	if (sound_control_kobj == NULL) {
+		pr_warn("%s kobject create failed!\n", __func__);
+        }
+
+	ret = sysfs_create_group(sound_control_kobj, &sound_control_attr_group);
+        if (ret) {
+		pr_warn("%s sysfs file create failed!\n", __func__);
+	}
+#endif
+
 	return ret;
 
 err_hphr_ocp_irq:
